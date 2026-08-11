@@ -29,6 +29,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     from App.routes.teacher_route import teacher_bp
     from App.routes.student_route import student_bp
     from App.routes.exam_route import exam_bp
+    from App.routes.result_route import result_bp
     from App.admin import admin_bp
 
     app.register_blueprint(subject_bp, url_prefix="/subjects")
@@ -37,6 +38,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     app.register_blueprint(teacher_bp, url_prefix="/teachers")
     app.register_blueprint(student_bp, url_prefix="/students")
     app.register_blueprint(exam_bp, url_prefix="/exams")
+    app.register_blueprint(result_bp, url_prefix = "/results")
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
     register_error_handlers(app)

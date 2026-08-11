@@ -26,4 +26,4 @@ class Student(db.Model):
     subjects = db.relationship("Subject", back_populates = "students", secondary = student_subjects)
     user = db.relationship("User", backref="student_profile")
     classroom = db.relationship("Classroom", back_populates="students")
-    result = db.relationship("Result", back_populates="students")
+    results = db.relationship("Result", back_populates="student")

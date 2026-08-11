@@ -12,6 +12,57 @@ from App.models.user import User
 from App.models.teacher import Teacher
 from App.models.student import Student
 
+# Add these imports if they aren't already at the top of your conftest.py
+from App.models.result import Result
+
+# --- Existing fixtures remain above ---
+
+@pytest.fixture
+def make_exam(app, subject, classroom):
+    """Factory: creates an Exam. Call with a unique suffix."""
+    def _make(suffix="1"):
+        with app.app_context():
+            exam = Exam(
+                title=f"Exam {suffix}",
+                description="Test description",
+                subject_id=subject.id,
+                classroom_id=classroom.id,
+                exam_date=date(2026, 12, 1),
+                start_time=time(9, 0),
+                duration_minutes=90,
+                total_marks=100,
+            )
+            db.session.add(exam)
+            db.session.commit()
+            db.session.refresh(exam)
+            return exam
+    return _make
+
+@pytest.fixture
+def exam(make_exam):
+    return make_exam("1")
+
+@pytest.fixture
+def make_result(app, student, exam):
+    """Factory: creates a Result record."""
+    def _make(student_obj=student, exam_obj=exam, marks=85.5):
+        with app.app_context():
+            result = Result(
+                student_id=student_obj.id,
+                exam_id=exam_obj.id,
+                marks_obtained=marks
+            )
+            db.session.add(result)
+            db.session.commit()
+            db.session.refresh(result)
+            return result
+    return _make
+
+@pytest.fixture
+
+def result(make_result):
+    return make_result()
+
 @pytest.fixture
 def teacher2(make_teacher):
     return make_teacher("2")
