@@ -23,14 +23,14 @@ def create_app(config: Optional[dict] = None) -> Flask:
     jwt.init_app(app)
     limiter.init_app(app)
 
-    from App.routes.subject_route import subject_bp
-    from App.routes.classroom_route import classroom_bp
-    from App.routes.assignment_route import ass_bp
-    from App.routes.teacher_route import teacher_bp
-    from App.routes.student_route import student_bp
-    from App.routes.exam_route import exam_bp
-    from App.routes.result_route import result_bp
-    from App.admin.grade_route import admin_bp
+    from App.routes.admin.subject_route import subject_bp
+    from App.routes.admin.classroom_route import classroom_bp
+    from App.routes.admin.assignment_route import ass_bp
+    from App.routes.admin.teacher_route import teacher_bp
+    from App.routes.admin.student_route import student_bp
+    from App.routes.admin.exam_route import exam_bp
+    from App.routes.admin.result_route import result_bp
+    from App.routes.admin.admin import admin_bp
 
     app.register_blueprint(subject_bp, url_prefix="/subjects")
     app.register_blueprint(classroom_bp, url_prefix="/classrooms")

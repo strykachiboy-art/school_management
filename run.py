@@ -18,5 +18,8 @@ def create_app():
         from App import models
     return app
 
+
+
 # $env:FLASK_APP = "run.py"
 # flask shell
+# git commit -am "Your descriptive message here" 
