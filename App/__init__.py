@@ -1,0 +1,62 @@
+"""School management application package."""
+from typing import Optional
+from flask import Flask, g
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+from App.models.user import User
+from App.errors import register_error_handlers
+
+from .config import get_config_class
+from .extensions import cors, db, jwt, limiter, migrate
+
+
+def create_app(config: Optional[dict] = None) -> Flask:
+    """Create and configure the Flask application."""
+    app = Flask(__name__)
+    app.config.from_object(get_config_class())
+
+    if config:
+        app.config.update(config)
+
+    db.init_app(app)
+    migrate.init_app(app, db)
+    cors.init_app(app)
+    jwt.init_app(app)
+    limiter.init_app(app)
+
+    from App.routes.subject_route import subject_bp
+    from App.routes.classroom_route import classroom_bp
+    from App.routes.assignment_route import ass_bp
+    from App.routes.teacher_route import teacher_bp
+    from App.routes.student_route import student_bp
+    from App.routes.exam_route import exam_bp
+    from App.admin import admin_bp
+
+    app.register_blueprint(subject_bp, url_prefix="/subjects")
+    app.register_blueprint(classroom_bp, url_prefix="/classrooms")
+    app.register_blueprint(ass_bp, url_prefix="/assignments")
+    app.register_blueprint(teacher_bp, url_prefix="/teachers")
+    app.register_blueprint(student_bp, url_prefix="/students")
+    app.register_blueprint(exam_bp, url_prefix="/exams")
+    app.register_blueprint(admin_bp, url_prefix="/admin")
+
+    register_error_handlers(app)
+
+    @app.before_request
+    def load_current_user():
+        
+        verify_jwt_in_request(optional=True)
+        user_id = get_jwt_identity()
+
+        if user_id:
+            g.user = db.session.get(User, user_id)
+        else:
+            g.user = None
+
+    @app.after_request
+    def after(response):
+        return response
+
+    return app
+
+
+__all__ = ["create_app", "db"]
