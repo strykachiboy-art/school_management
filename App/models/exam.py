@@ -21,3 +21,5 @@ class Exam(db.Model):
     total_marks = db.Column(db.Integer, nullable = False)
     created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
+    
+    results = db.relationship("Result", back_populates = "exam")
