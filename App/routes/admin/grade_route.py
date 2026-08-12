@@ -1,4 +1,4 @@
-from App.admin.admin import admin_bp
+from App.routes.admin.admin import admin_bp
 from flask import Blueprint, jsonify, abort, request, render_template
 from App.models.result import Result
 

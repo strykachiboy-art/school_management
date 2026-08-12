@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for, abort
+from flask import Blueprint, flash, jsonify, redirect, request, url_for, abort
 from App.decorators import role_required
 from App.forms.teachers_form import TeacherForm
 from App.schemas.teacher_schema import TeacherSchema
@@ -34,7 +34,7 @@ def create_teacher():
         flash("Teacher created successfully", "success")
         return redirect(url_for("teacher.get_all_teacher"))
 
-    return render_template("admin/create_teacher.html", form=form)
+    return jsonify({"message": "Submit teacher fields via POST"}), 200
 
 
 @teacher_bp.route("", methods=["GET"])
@@ -44,7 +44,15 @@ def get_all_teacher():
     teacher_id = request.args.get("id", None, type=int)
     user_id = request.args.get("user_id", None, type=int)
 
-    if search:
+    if request.args.get("paginate") == "true":
+        page = paginate_teachers()
+        return jsonify({
+            "items": [TeacherSchema().dump(item) for item in page.items],
+            "page": page.page,
+            "pages": page.pages,
+            "total": page.total,
+        })
+    elif search:
         teacher = search_teacher_info(search)
     elif teacher_id or user_id:
         filters = {}
@@ -53,24 +61,11 @@ def get_all_teacher():
         if user_id:
             filters["user_id"] = user_id
         teacher = filter_Teacher(**filters)
-    elif request.args.get("paginate") == "true":
-        page = paginate_teachers()
-        if wants_json():
-            return jsonify({
-                "items": [TeacherSchema().dump(item) for item in page.items],
-                "page": page.page,
-                "pages": page.pages,
-                "total": page.total,
-            })
-        return render_template("admin/teachers.html", teacher=page.items, page=page)
     else:
         teacher = get_all_teachers()
 
-    if wants_json():
-        serialized_teachers = TeacherSchema(many=True).dump(teacher)
-        return jsonify(serialized_teachers)
-
-    return render_template("admin/teachers.html", teacher=teacher)
+    serialized_teachers = TeacherSchema(many=True).dump(teacher)
+    return jsonify(serialized_teachers)
 
 
 @teacher_bp.route("/<int:teacher_id>", methods=["GET"])
@@ -80,10 +75,7 @@ def get_teacher(teacher_id):
     if teacher is None:
         abort(404)
 
-    if wants_json():
-        return jsonify(TeacherSchema().dump(teacher))
-
-    return render_template("admin/teachers.html", teacher=teacher)
+    return jsonify(TeacherSchema().dump(teacher))
 
 
 @teacher_bp.route("/<int:teacher_id>/edit", methods=["GET", "POST"])
@@ -105,7 +97,7 @@ def update_teacher(teacher_id):
         flash("Teacher updated successfully!", "success")
         return redirect(url_for("teacher.get_teacher", teacher_id=updated_teacher.id))
 
-    return render_template("admin/edit_teacher.html", form=form, teacher=teacher)
+    return jsonify(TeacherSchema().dump(teacher))
 
 
 @teacher_bp.route("/<int:teacher_id>", methods=["DELETE"])
@@ -130,7 +122,4 @@ def get_classroom_details(classroom_id):
     if classroom is None:
         abort(404)
 
-    if wants_json():
-        return jsonify(serialize_classroom(classroom))
-
-    return render_template("admin/classes.html", classroom=classroom)
+    return jsonify(serialize_classroom(classroom))

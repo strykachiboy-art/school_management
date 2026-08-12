@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for, abort
+from flask import Blueprint, flash, jsonify, redirect, request, url_for, abort
 from App.decorators import role_required
 from App.forms.classroom_form import ClassroomForm
 from App.schemas.classroom_schema import ClassroomSchema
@@ -25,15 +25,18 @@ def create_classroom_route():
 
         if classroom is None:
             flash("Could not create classroom", "danger")
-            return render_template("admin/classes.html", form=form)
+            return jsonify({"message": "Could not create classroom"}), 400
 
         if wants_json():
             return jsonify(ClassroomSchema().dump(classroom)), 201
 
         flash("Classroom created successfully", "success")
-        return redirect(url_for("classroom.get_all_classrooms"))
+        return redirect(url_for("classroom.get_all_classrooms_route"))
 
-    return render_template("admin/classes.html", form=form)
+    if request.method == "POST":
+        return jsonify({"errors": form.errors}), 400
+
+    return jsonify({"message": "Submit classroom fields via POST"}), 200
 
 
 @classroom_bp.route("", methods=["GET"])
@@ -41,21 +44,16 @@ def create_classroom_route():
 def get_all_classrooms_route():
     if request.args.get("list") == "true":
         classrooms = get_all_classroom_list()
-        if wants_json():
-            return jsonify(ClassroomSchema(many=True).dump(classrooms))
-        return render_template("admin/classes.html", classrooms=classrooms)
+        return jsonify(ClassroomSchema(many=True).dump(classrooms))
 
     page = get_all_classrooms(search=request.args.get("search", "", type=str))
 
-    if wants_json():
-        return jsonify({
-            "items": ClassroomSchema(many=True).dump(page.items),
-            "page": page.page,
-            "pages": page.pages,
-            "total": page.total,
-        })
-
-    return render_template("admin/classes.html", page=page)
+    return jsonify({
+        "items": ClassroomSchema(many=True).dump(page.items),
+        "page": page.page,
+        "pages": page.pages,
+        "total": page.total,
+    })
 
 
 @classroom_bp.route("/<int:classroom_id>", methods=["GET"])
@@ -65,10 +63,7 @@ def get_classroom_detail(classroom_id):
     if classroom is None:
         abort(404)
 
-    if wants_json():
-        return jsonify(ClassroomSchema().dump(classroom))
-
-    return render_template("admin/classes.html", classroom=classroom)
+    return jsonify(ClassroomSchema().dump(classroom))
 
 
 @classroom_bp.route("/<int:classroom_id>/edit", methods=["GET", "POST"])
@@ -89,7 +84,10 @@ def update_classroom_route(classroom_id):
         flash("Classroom updated successfully", "success")
         return redirect(url_for("classroom.get_classroom_detail", classroom_id=updated_classroom.id))
 
-    return render_template("admin/classes.html", form=form, classroom=classroom)
+    if request.method == "POST":
+        return jsonify({"errors": form.errors}), 400
+
+    return jsonify(ClassroomSchema().dump(classroom))
 
 
 @classroom_bp.route("/<int:classroom_id>", methods=["DELETE"])

@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, abort, request
+from flask import Blueprint, flash, jsonify, redirect, request, abort
 from App.decorators import role_required
 from App.utils.helpers import wants_json
 from App.schemas.subject_schema import SubjectSchema
@@ -38,10 +38,14 @@ def assign_subject_to_teachers_route(subject_id):
     except ValueError as e:
         abort(400, description=str(e))
 
-    return jsonify({"message": "Subject assigned to teachers successfully"}), 200
+    if wants_json():
+        return jsonify({"message": "Subject assigned to teachers successfully"}), 200
+
+    flash("Subject assigned to teachers successfully", "success")
+    return redirect(request.referrer or "/")
 
 
-@ass_bp.route("/subjects/<int:subject_id>/remove/teachers", methods=["POST"])
+@ass_bp.route("/subjects/<int:subject_id>/remove/teachers", methods=["DELETE"])
 @role_required("admin")
 def remove_subject_from_teachers_route(subject_id):
     teacher_ids = _get_ids_from_request("teacher_ids")
@@ -51,7 +55,11 @@ def remove_subject_from_teachers_route(subject_id):
     except ValueError as e:
         abort(400, description=str(e))
 
-    return jsonify({"message": "Subject removed from teachers successfully"}), 200
+    if wants_json():
+        return jsonify({"message": "Subject removed from teachers successfully"}), 200
+
+    flash("Subject removed from teachers successfully", "success")
+    return redirect(request.referrer or "/")
 
 
 @ass_bp.route("/teachers/<int:teacher_id>/subjects", methods=["GET"])
@@ -76,10 +84,14 @@ def assign_subject_to_students_route(subject_id):
     except ValueError as e:
         abort(400, description=str(e))
 
-    return jsonify({"message": "Subject assigned to students successfully"}), 200
+    if wants_json():
+        return jsonify({"message": "Subject assigned to students successfully"}), 200
+
+    flash("Subject assigned to students successfully", "success")
+    return redirect(request.referrer or "/")
 
 
-@ass_bp.route("/subjects/<int:subject_id>/remove/students", methods=["POST"])
+@ass_bp.route("/subjects/<int:subject_id>/remove/students", methods=["DELETE"])
 @role_required("admin")
 def remove_subject_from_students_route(subject_id):
     student_ids = _get_ids_from_request("student_ids")
@@ -89,7 +101,11 @@ def remove_subject_from_students_route(subject_id):
     except ValueError as e:
         abort(400, description=str(e))
 
-    return jsonify({"message": "Subject removed from students successfully"}), 200
+    if wants_json():
+        return jsonify({"message": "Subject removed from students successfully"}), 200
+
+    flash("Subject removed from students successfully", "success")
+    return redirect(request.referrer or "/")
 
 
 @ass_bp.route("/students/<int:student_id>/subjects", methods=["GET"])
@@ -114,10 +130,14 @@ def assign_subject_to_classrooms_route(subject_id):
     except ValueError as e:
         abort(400, description=str(e))
 
-    return jsonify({"message": "Subject assigned to classrooms successfully"}), 200
+    if wants_json():
+        return jsonify({"message": "Subject assigned to classrooms successfully"}), 200
+
+    flash("Subject assigned to classrooms successfully", "success")
+    return redirect(request.referrer or "/")
 
 
-@ass_bp.route("/subjects/<int:subject_id>/remove/classrooms", methods=["POST"])
+@ass_bp.route("/subjects/<int:subject_id>/remove/classrooms", methods=["DELETE"])
 @role_required("admin")
 def remove_subject_from_classrooms_route(subject_id):
     classroom_ids = _get_ids_from_request("classroom_ids")
@@ -127,7 +147,11 @@ def remove_subject_from_classrooms_route(subject_id):
     except ValueError as e:
         abort(400, description=str(e))
 
-    return jsonify({"message": "Subject removed from classrooms successfully"}), 200
+    if wants_json():
+        return jsonify({"message": "Subject removed from classrooms successfully"}), 200
+
+    flash("Subject removed from classrooms successfully", "success")
+    return redirect(request.referrer or "/")
 
 
 @ass_bp.route("/classrooms/<int:classroom_id>/subjects", methods=["GET"])

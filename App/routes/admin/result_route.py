@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, render_template, request, abort, flash, redirect, url_for
+from flask import Blueprint, jsonify, request, abort, flash, redirect, url_for
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 from App.schemas.result_schema import ResultSchema
@@ -29,7 +29,6 @@ def create_result_route():
     except ValidationError as err:
         return jsonify(err.messages), 422
 
-    # Correct use of dot notation because load_instance = True
     created_result = create_result(
         student_id=result_instance.student_id, 
         exam_id=result_instance.exam_id,
@@ -43,7 +42,7 @@ def create_result_route():
         
     flash("Result created successfully")
     
-    return render_template("results/result_detail.html", result=created_result)
+    return jsonify(serialized_result), 201
 
 
 # ============================ Get All Results Route ============================
@@ -51,17 +50,13 @@ def create_result_route():
 @role_required("admin")
 def get_all_results_route(): 
     results = get_all_result_service()
-    
-    if not results:
-        abort(404, description="Results not found")
-    
+
     serialized_result = ResultSchema(many=True).dump(results)
     
     if wants_json():
         return jsonify(serialized_result), 200
    
-    # FIXED: Changed from result_detail.html to get_results.html for lists
-    return render_template("results/get_results.html", results=results)
+    return jsonify(serialized_result), 200
 
 
 # ============================ Get Result by ID Route ============================
@@ -78,7 +73,7 @@ def get_result_route(result_id):
     if wants_json():
         return jsonify(serialized_result), 200
     
-    return render_template("results/result_detail.html", result=result)
+    return jsonify(serialized_result), 200
 
 
 # ============================ Delete Result Route ============================
@@ -104,32 +99,22 @@ def search_result_route():
     try:
         student_id = request.args.get("student_id", type=int)
         exam_id = request.args.get("exam_id", type=int)
-        classroom_id = request.args.get("classroom_id", type = int)
 
-        if student_id:
-            results = search_results(student_id=student_id)
-        elif exam_id:
-            results = search_results(exam_id=exam_id)
-        elif classroom_id:
-            results = search_results(classroom_id=classroom_id)
-        elif request.args.get("paginate") == "true":
+        if request.args.get("paginate") == "true":
             page = paginate_result()
-            if wants_json():
-                return jsonify({
-                    "items": ResultSchema(many=True).dump(page.items),
-                    "page": page.page,
-                    "pages": page.pages,
-                    "total": page.total,
-                })
-            return render_template("results/results.html", results=page.items, page=page)
+            return jsonify({
+                "items": ResultSchema(many=True).dump(page.items),
+                "page": page.page,
+                "pages": page.pages,
+                "total": page.total,
+            })
+        elif student_id or exam_id:
+            results = search_results(student_id=student_id, exam_id=exam_id)
         else:
             results = get_all_result_service()
 
-        if wants_json():
-            return jsonify(ResultSchema(many=True).dump(results))
+        return jsonify(ResultSchema(many=True).dump(results))
 
-        return render_template("results/results.html", results=results)
-        
     except Exception as e:
         if wants_json():
             return jsonify({"error": "An unexpected error occurred."}), 500

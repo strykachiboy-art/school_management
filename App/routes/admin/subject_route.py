@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for, abort
+from flask import Blueprint, flash, jsonify, redirect, request, url_for, abort
 from App.decorators import role_required
 from App.forms.student_form import StudentForm
 from App.forms.subject_form import SubjectForm
@@ -30,7 +30,7 @@ def create_subject_route():
             if wants_json():
                 return jsonify(error="Could not create subject"), 400
             flash("Could not create subject", "danger")
-            return render_template("admin/subjects.html", form=form)
+            return jsonify(error="Could not create subject"), 400
 
         if wants_json():
             return jsonify(SubjectSchema().dump(subject)), 201
@@ -41,7 +41,7 @@ def create_subject_route():
     if wants_json():
         return jsonify(errors=form.errors), 400
 
-    return render_template("admin/subjects.html", form=form)
+    return jsonify({"message": "Submit subject fields via POST"}), 200
 
 
 @subject_bp.route("", methods=["GET"])
@@ -49,26 +49,21 @@ def create_subject_route():
 def get_subjects():
     search = request.args.get("search", "", type=str)
 
-    if search:
-        subjects = search_subject_info(search)
-    elif request.args.get("paginate") == "true":
+    if request.args.get("paginate") == "true":
         page = paginate_subject()
-        if wants_json():
-            return jsonify({
-                "items": [SubjectSchema().dump(item) for item in page.items],
-                "page": page.page,
-                "pages": page.pages,
-                "total": page.total,
-            })
-        return render_template("admin/subjects.html", subjects=page.items, page=page)
+        return jsonify({
+            "items": [SubjectSchema().dump(item) for item in page.items],
+            "page": page.page,
+            "pages": page.pages,
+            "total": page.total,
+        })
+    elif search:
+        subjects = search_subject_info(search)
     else:
         subjects = get_all_subjects()
 
-    if wants_json():
-        serialized_subjects = SubjectSchema(many=True).dump(subjects)
-        return jsonify(serialized_subjects)
-
-    return render_template("admin/subjects.html", subjects=subjects)
+    serialized_subjects = SubjectSchema(many=True).dump(subjects)
+    return jsonify(serialized_subjects)
 
 
 @subject_bp.route("/<int:subject_id>", methods=["GET"])
@@ -78,10 +73,7 @@ def get_subject_detail(subject_id):
     if subject is None:
         abort(404)
 
-    if wants_json():
-        return jsonify(SubjectSchema().dump(subject))
-
-    return render_template("admin/subjects.html", subject=subject)
+    return jsonify(SubjectSchema().dump(subject))
 
 
 @subject_bp.route("/<int:subject_id>/edit", methods=["GET", "POST"])
@@ -102,7 +94,7 @@ def update_subject_route(subject_id):
         flash("Subject updated successfully", "success")
         return redirect(url_for("subject.get_subject_detail", subject_id=updated_subject.id))
 
-    return render_template("admin/subjects.html", form=form, subject=subject)
+    return jsonify(SubjectSchema().dump(subject))
 
 
 @subject_bp.route("/<int:subject_id>", methods=["DELETE"])

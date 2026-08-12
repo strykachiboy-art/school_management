@@ -1,3 +1,5 @@
+# test/test_teacher.py
+
 def test_create_teacher_success(client, admin_headers):
     payload = {
         "username": "new_teacher",

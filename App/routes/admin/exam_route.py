@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, render_template, request, abort, flash, redirect, url_for
+from flask import Blueprint, jsonify, request, abort, flash, redirect, url_for
 from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
 from App.schemas.exam_schema import ExamSchema
@@ -48,7 +48,7 @@ def create_exam_route():
                 return jsonify({"error": "Database error — duplicate or invalid constraint."}), 400
             flash("Could not create exam — check for duplicate entries.", "danger")
 
-    return render_template("exams/create_exam.html")
+    return jsonify({"message": "Submit exam fields via POST"}), 200
 
 
 # ================================== Get All Exams Route ==================================
@@ -59,14 +59,8 @@ def get_exams():
         search = request.args.get("search", "", type=str)
         subject_id = request.args.get("subject_id", None, type=int)
         classroom_id = request.args.get("classroom_id", None, type=int)
-        
-        if search:
-            exams = search_exams(search)
-        elif subject_id:
-             exams = search_exams(subject_id)
-        elif classroom_id:
-             exams = search_exams(classroom_id)
-        elif request.args.get("paginate") == "true":
+
+        if request.args.get("paginate") == "true":
             page = paginate_exams()
             if wants_json():
                 return jsonify({
@@ -75,14 +69,21 @@ def get_exams():
                     "pages": page.pages,
                     "total": page.total,
                 })
-            return render_template("exams/exams.html", exams=page.items, page=page)
+            return jsonify({
+                "items": ExamSchema(many=True).dump(page.items),
+                "page": page.page,
+                "pages": page.pages,
+                "total": page.total,
+            })
+        elif search or subject_id or classroom_id:
+            exams = search_exams(search)
         else:
             exams = get_all_exam()
 
         if wants_json():
             return jsonify(ExamSchema(many=True).dump(exams))
 
-        return render_template("exams/exams.html", exams=exams)
+        return jsonify(ExamSchema(many=True).dump(exams))
         
     except Exception as e:
         if wants_json():
@@ -104,7 +105,7 @@ def get_exam(exam_id):
     if wants_json():
         return jsonify(ExamSchema().dump(exam))
 
-    return render_template("exams/exam.html", exam=exam)
+    return jsonify(ExamSchema().dump(exam))
 
 
 
@@ -113,6 +114,7 @@ def get_exam(exam_id):
 @role_required("admin")
 def remove_exam(exam_id):
     deleted = delete_exam(exam_id)
+    
     if not deleted:
         if wants_json():
             return jsonify({"error": "Exam not found"}), 404

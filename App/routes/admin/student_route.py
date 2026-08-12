@@ -1,4 +1,4 @@
-from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for, abort
+from flask import Blueprint, flash, jsonify, redirect, request, url_for, abort
 from App.schemas.student_schema import StudentSchema
 from App.decorators import role_required
 from App.forms.student_form import StudentForm
@@ -32,7 +32,7 @@ def create_student():
         flash("Student created successfully", "success")
         return redirect(url_for("student.get_all_student"))
 
-    return render_template("admin/create_student.html", form=form)
+    return jsonify({"message": "Submit student fields via POST"}), 200
 
 
 @student_bp.route("", methods=["GET"])
@@ -42,30 +42,25 @@ def get_all_student():
     classroom_id = request.args.get("classroom_id", None, type=int)
     admission_number = request.args.get("admission_number", None, type=str)
 
-    if search:
+    if request.args.get("paginate") == "true":
+        page = paginate_students()
+        return jsonify({
+            "items": [StudentSchema().dump(item) for item in page.items],
+            "page": page.page,
+            "pages": page.pages,
+            "total": page.total,
+        })
+    elif search:
         students = search_student_info(search)
     elif classroom_id:
         students = filter_classroom_id(classroom_id)
     elif admission_number:
         students = filter_admission_number(admission_number)
-    elif request.args.get("paginate") == "true":
-        page = paginate_students()
-        if wants_json():
-            return jsonify({
-                "items": [StudentSchema().dump(item) for item in page.items],
-                "page": page.page,
-                "pages": page.pages,
-                "total": page.total,
-            })
-        return render_template("admin/students.html", students=page.items, page=page)
     else:
         students = get_all_students()
 
-    if wants_json():
-        serialized_students = StudentSchema(many=True).dump(students)
-        return jsonify(serialized_students)
-
-    return render_template("admin/students.html", students=students)
+    serialized_students = StudentSchema(many=True).dump(students)
+    return jsonify(serialized_students)
 
 
 @student_bp.route("/<int:student_id>", methods=["GET"])
@@ -75,10 +70,7 @@ def get_student(student_id):
     if student is None:
         abort(404)
 
-    if wants_json():
-        return jsonify(StudentSchema().dump(student))
-
-    return render_template("admin/student_detail.html", student=student)
+    return jsonify(StudentSchema().dump(student))
 
 
 @student_bp.route("/<int:student_id>/edit", methods=["GET", "POST"])
@@ -100,7 +92,7 @@ def update_student(student_id):
         flash("Student updated successfully!", "success")
         return redirect(url_for("student.get_student", student_id=updated_student.id))
 
-    return render_template("admin/edit_student.html", form=form, student=student)
+    return jsonify(StudentSchema().dump(student))
 
 
 @student_bp.route("/<int:student_id>", methods=["DELETE"])

@@ -62,7 +62,7 @@ def test_remove_subject_from_teachers_success(client, admin_headers, subject, te
         json={"teacher_ids": [teacher.id]},
         headers=admin_headers,
     )
-    response = client.post(
+    response = client.delete(
         f"/assignments/subjects/{subject.id}/remove/teachers",
         json={"teacher_ids": [teacher.id]},
         headers=admin_headers,
@@ -117,7 +117,7 @@ def test_remove_subject_from_students_success(client, admin_headers, subject, st
         json={"student_ids": [student.id]},
         headers=admin_headers,
     )
-    response = client.post(
+    response = client.delete(
         f"/assignments/subjects/{subject.id}/remove/students",
         json={"student_ids": [student.id]},
         headers=admin_headers,
@@ -172,7 +172,7 @@ def test_remove_subject_from_classrooms_success(client, admin_headers, subject, 
         json={"classroom_ids": [classroom.id]},
         headers=admin_headers,
     )
-    response = client.post(
+    response = client.delete(
         f"/assignments/subjects/{subject.id}/remove/classrooms",
         json={"classroom_ids": [classroom.id]},
         headers=admin_headers,

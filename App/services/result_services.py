@@ -2,7 +2,6 @@ from flask import abort, request
 from App.models.result import Result
 from App.models.student import Student
 from App.models.exam import Exam
-from App.models.result import Result
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
 
@@ -28,7 +27,7 @@ def create_result(student_id, exam_id, marks_obtained):
     )
     
     db.session.add(result)
-    db.session.commit
+    db.session.commit()
     
     return result
 
@@ -102,5 +101,3 @@ def paginate_result(page = 1, per_page = 10):
                        page=page,
                        per_page=per_page,
                        error_out=False)
-    
-    
