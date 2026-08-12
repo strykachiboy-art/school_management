@@ -39,6 +39,7 @@ GRADE_REMARK = {
     "B": "Very Good",
     "C": "Good",
     "D": "Pass",
+    "E": "Weak Pass",
     "F": "Fail"
 }
 
@@ -62,5 +63,3 @@ def calculate_student_grade(results):
         "grade" : grade,
         "remark" : remark
     }
-
-

@@ -12,10 +12,8 @@ from App.models.user import User
 from App.models.teacher import Teacher
 from App.models.student import Student
 
-# Add these imports if they aren't already at the top of your conftest.py
 from App.models.result import Result
 
-# --- Existing fixtures remain above ---
 
 @pytest.fixture
 def make_exam(app, subject, classroom):
