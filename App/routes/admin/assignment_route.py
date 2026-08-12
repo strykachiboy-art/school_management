@@ -63,7 +63,7 @@ def remove_subject_from_teachers_route(subject_id):
 
 
 @ass_bp.route("/teachers/<int:teacher_id>/subjects", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher")
 def get_teacher_subjects_route(teacher_id):
     try:
         subjects = get_subjects_for_teacher(teacher_id)
@@ -109,7 +109,7 @@ def remove_subject_from_students_route(subject_id):
 
 
 @ass_bp.route("/students/<int:student_id>/subjects", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher")
 def get_student_subjects_route(student_id):
     try:
         subjects = get_subjects_for_student(student_id)
@@ -155,7 +155,7 @@ def remove_subject_from_classrooms_route(subject_id):
 
 
 @ass_bp.route("/classrooms/<int:classroom_id>/subjects", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher")
 def get_classroom_subjects_route(classroom_id):
     try:
         subjects = get_subjects_for_classroom(classroom_id)

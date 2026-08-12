@@ -53,7 +53,7 @@ def create_exam_route():
 
 # ================================== Get All Exams Route ==================================
 @exam_bp.route("/", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher")
 def get_exams():
     try:
         search = request.args.get("search", "", type=str)
@@ -94,7 +94,7 @@ def get_exams():
 
 #============================== get exam id ===============================
 @exam_bp.route("/<int:exam_id>", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher")
 def get_exam(exam_id):
     exam = get_exam_by_id(exam_id)
     if exam is None:

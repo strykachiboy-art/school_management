@@ -9,12 +9,10 @@ from App.utils.helpers import wants_json
 @admin_bp.route("/students/<int:student_id>/grade", methods=["GET"])
 @role_required("admin")
 def get_student_grade(student_id):
-    # FIXED: Added field name and .all() to convert query to a list
     results = Result.query.filter_by(student_id=student_id).all()
     
     grade = calculate_student_grade(results)
-    
-    # FIXED: Added parentheses to function call
+
     if wants_json():
         return jsonify(grade), 200
     

@@ -40,7 +40,7 @@ def create_classroom_route():
 
 
 @classroom_bp.route("", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher")
 def get_all_classrooms_route():
     if request.args.get("list") == "true":
         classrooms = get_all_classroom_list()
@@ -57,7 +57,7 @@ def get_all_classrooms_route():
 
 
 @classroom_bp.route("/<int:classroom_id>", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher")
 def get_classroom_detail(classroom_id):
     classroom = get_classroom(classroom_id)
     if classroom is None:
