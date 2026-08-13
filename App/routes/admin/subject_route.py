@@ -15,6 +15,8 @@ from App.services.subject_services import (
 subject_bp = Blueprint("subject", __name__, url_prefix="/subjects")
 
 
+# ====================================== create_subject_route ===============================================
+
 @subject_bp.route("/create", methods=["POST"])
 @role_required("admin")
 @validate_request(SubjectCreateRequest)
@@ -26,6 +28,9 @@ def create_subject_route(data: SubjectCreateRequest):
 
     serialized_subject = SubjectResponse.model_validate(subject).model_dump()
     return jsonify(serialized_subject), 201
+
+
+# ====================================== get_subjects ===============================================
 
 
 @subject_bp.route("", methods=["GET"])
@@ -48,6 +53,10 @@ def get_subjects():
 
     serialized_subjects = [SubjectResponse.model_validate(s).model_dump() for s in subjects]
     return jsonify(serialized_subjects), 200
+
+
+
+# ====================================== get_subject_detail ===============================================
 
 
 @subject_bp.route("/<int:subject_id>", methods=["GET"])
@@ -73,6 +82,9 @@ def update_subject_route(data: SubjectCreateRequest, subject_id):
 
     serialized_subject = SubjectResponse.model_validate(updated_subject).model_dump()
     return jsonify(serialized_subject), 200
+
+
+# ====================================== delete_subject_route ===============================================
 
 
 @subject_bp.route("/<int:subject_id>", methods=["DELETE"])

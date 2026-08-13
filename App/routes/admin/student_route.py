@@ -18,6 +18,8 @@ from App.services.student_services import (
 student_bp = Blueprint("student", __name__, url_prefix="/students")
 
 
+# ====================================== create_student ===============================================
+
 @student_bp.route("/create", methods=["POST"])
 @role_required("admin")
 @validate_request(StudentCreateRequest)
@@ -28,6 +30,8 @@ def create_student(data: StudentCreateRequest):
     serialized_student = StudentResponse.model_validate(student).model_dump()
     return jsonify(serialized_student), 201
 
+
+# ======================================get_all_student ===============================================
 
 @student_bp.route("", methods=["GET"])
 @role_required("admin", "teacher")
@@ -57,6 +61,8 @@ def get_all_student():
     return jsonify(serialized_students), 200
 
 
+# ====================================== get_student ===============================================
+
 @student_bp.route("/<int:student_id>", methods=["GET"])
 @role_required("admin", "teacher")
 def get_student(student_id):
@@ -80,6 +86,9 @@ def update_student(data: StudentCreateRequest, student_id):
     
     serialized_student = StudentResponse.model_validate(updated_student).model_dump()
     return jsonify(serialized_student), 200
+
+
+# ====================================== delete_student ===============================================
 
 
 @student_bp.route("/<int:student_id>", methods=["DELETE"])

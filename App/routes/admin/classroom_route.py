@@ -13,6 +13,7 @@ from App.services.classroom_services import (
 
 classroom_bp = Blueprint("classroom", __name__, url_prefix="/classrooms")
 
+# ====================================== Classroom assignment routes ===============================================
 
 @classroom_bp.route("/create", methods=["POST"])
 @role_required("admin")
@@ -26,6 +27,7 @@ def create_classroom_route(data: ClassroomCreateRequest):
     serialized_classroom = ClassroomResponse.model_validate(classroom).model_dump()
     return jsonify(serialized_classroom), 201
 
+# ====================================== get_all_classrooms_route ===============================================
 
 @classroom_bp.route("", methods=["GET"])
 @role_required("admin", "teacher")
@@ -45,6 +47,8 @@ def get_all_classrooms_route():
     }), 200
 
 
+# ====================================== get_classroom_detail routes ===============================================
+
 @classroom_bp.route("/<int:classroom_id>", methods=["GET"])
 @role_required("admin", "teacher")
 def get_classroom_detail(classroom_id):
@@ -55,6 +59,8 @@ def get_classroom_detail(classroom_id):
     serialized_classroom = ClassroomResponse.model_validate(classroom).model_dump()
     return jsonify(serialized_classroom), 200
 
+
+# ====================================== update_classroom_route ===============================================
 
 @classroom_bp.route("/<int:classroom_id>/edit", methods=["PUT", "PATCH"])
 @role_required("admin")
@@ -69,6 +75,8 @@ def update_classroom_route(data: ClassroomCreateRequest, classroom_id):
     serialized_classroom = ClassroomResponse.model_validate(updated_classroom).model_dump()
     return jsonify(serialized_classroom), 200
 
+
+# ====================================== delete_classroom_route ===============================================
 
 @classroom_bp.route("/<int:classroom_id>", methods=["DELETE"])
 @role_required("admin")

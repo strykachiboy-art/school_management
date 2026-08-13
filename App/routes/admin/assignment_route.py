@@ -40,6 +40,8 @@ def assign_subject_to_teachers_route(subject_id):
     return jsonify({"message": "Subject assigned to teachers successfully"}), 200
 
 
+# ====================================== remove_subject_from_teachers_route ===============================================
+
 @ass_bp.route("/subjects/<int:subject_id>/remove/teachers", methods=["DELETE"])
 @role_required("admin")
 def remove_subject_from_teachers_route(subject_id):
@@ -53,6 +55,8 @@ def remove_subject_from_teachers_route(subject_id):
     return jsonify({"message": "Subject removed from teachers successfully"}), 200
 
 
+# ====================================== get_teacher_subjects_route ===============================================
+
 @ass_bp.route("/teachers/<int:teacher_id>/subjects", methods=["GET"])
 @role_required("admin", "teacher")
 def get_teacher_subjects_route(teacher_id):
@@ -65,7 +69,8 @@ def get_teacher_subjects_route(teacher_id):
     return jsonify(serialized_subjects), 200
 
 
-# ====================================== Student assignment routes ===============================================
+# ====================================== assign_subject_to_students_route ===============================================
+
 @ass_bp.route("/subjects/<int:subject_id>/assign/students", methods=["POST"])
 @role_required("admin")
 def assign_subject_to_students_route(subject_id):
@@ -78,6 +83,8 @@ def assign_subject_to_students_route(subject_id):
 
     return jsonify({"message": "Subject assigned to students successfully"}), 200
 
+
+# ====================================== remove_subject_from_students_route ===============================================
 
 @ass_bp.route("/subjects/<int:subject_id>/remove/students", methods=["DELETE"])
 @role_required("admin")
@@ -105,6 +112,7 @@ def get_student_subjects_route(student_id):
 
 
 # ====================================== Classroom assignment routes ===============================================
+
 @ass_bp.route("/subjects/<int:subject_id>/assign/classrooms", methods=["POST"])
 @role_required("admin")
 def assign_subject_to_classrooms_route(subject_id):
@@ -117,6 +125,7 @@ def assign_subject_to_classrooms_route(subject_id):
 
     return jsonify({"message": "Subject assigned to classrooms successfully"}), 200
 
+# ====================================== remove_subject_from_classrooms_route ===============================================
 
 @ass_bp.route("/subjects/<int:subject_id>/remove/classrooms", methods=["DELETE"])
 @role_required("admin")
@@ -130,6 +139,8 @@ def remove_subject_from_classrooms_route(subject_id):
 
     return jsonify({"message": "Subject removed from classrooms successfully"}), 200
 
+
+# ====================================== get_classroom_subjects_route ===============================================
 
 @ass_bp.route("/classrooms/<int:classroom_id>/subjects", methods=["GET"])
 @role_required("admin", "teacher")

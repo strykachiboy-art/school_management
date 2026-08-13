@@ -19,6 +19,8 @@ from App.services.classroom_services import (
 teacher_bp = Blueprint("teacher", __name__, url_prefix="/teachers")
 
 
+# ====================================== create_teacher ===============================================
+
 @teacher_bp.route("/create", methods=["POST"])
 @role_required("admin")
 @validate_request(TeacherCreateRequest)
@@ -28,6 +30,8 @@ def create_teacher(data: TeacherCreateRequest):
     serialized_teacher = TeacherResponse.model_validate(teacher).model_dump()
     return jsonify(serialized_teacher), 201
 
+
+# ====================================== get_all_teacher ===============================================
 
 @teacher_bp.route("", methods=["GET"])
 @role_required("admin")
@@ -60,6 +64,9 @@ def get_all_teacher():
     return jsonify(serialized_teachers), 200
 
 
+# ====================================== get_teacher ===============================================
+
+
 @teacher_bp.route("/<int:teacher_id>", methods=["GET"])
 @role_required("admin")
 def get_teacher(teacher_id):
@@ -69,6 +76,9 @@ def get_teacher(teacher_id):
 
     serialized_teacher = TeacherResponse.model_validate(teacher).model_dump()
     return jsonify(serialized_teacher), 200
+
+
+# ====================================== update_teacher ===============================================
 
 
 @teacher_bp.route("/<int:teacher_id>/edit", methods=["PUT", "PATCH"])
@@ -85,6 +95,9 @@ def update_teacher(data: TeacherCreateRequest, teacher_id):
     return jsonify(serialized_teacher), 200
 
 
+# ====================================== delete_teacher ===============================================
+
+
 @teacher_bp.route("/<int:teacher_id>", methods=["DELETE"])
 @role_required("admin")
 def delete_teacher(teacher_id):
@@ -95,6 +108,8 @@ def delete_teacher(teacher_id):
 
     return jsonify({"message": "Teacher deleted successfully"}), 200
 
+
+# ====================================== get_classroom_details ===============================================
 
 @teacher_bp.route("/classrooms/<int:classroom_id>", methods=["GET"])
 @role_required("admin")
