@@ -26,3 +26,44 @@ def create_app():
 
 
 
+# // Frontend JavaScript
+# async function updateProfile(data) {
+#     const token = localStorage.getItem('jwt_token'); // Or wherever you store it
+
+#     try {
+#         const response = await fetch('/api/profile', {
+#             method: 'PUT',
+#             headers: {
+#                 'Content-Type': 'application/json',
+#                 'Authorization': `Bearer ${token}` // Passing the JWT
+#             },
+#             body: JSON.stringify(data)
+#         });
+
+#         // 1. Handle Authentication Failures (Redirect to Login)
+#         if (response.status === 401) {
+#             console.warn("Session expired. Booting to login...");
+#             localStorage.removeItem('jwt_token'); // Clean up
+#             window.location.href = '/login';      // JS handles the redirect!
+#             return;
+#         }
+
+#         // 2. Handle Business Logic Errors (Show messages, stay on page)
+#         if (response.status === 400) {
+#             const errorData = await response.json();
+#             alert(`Oops: ${errorData.message}`);
+#             return;
+#         }
+
+#         // 3. Handle Success (Update UI or redirect to a dashboard)
+#         if (response.ok) {
+#             const responseData = await response.json();
+#             console.log("Success!", responseData);
+#             // JS can redirect the user after success:
+#             window.location.href = '/dashboard'; 
+#         }
+
+#     } catch (error) {
+#         console.error("Network error:", error);
+#     }
+# }

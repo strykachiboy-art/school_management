@@ -16,6 +16,29 @@ from App.models.student import Student
 
 from App.models.result import Result
 
+@pytest.fixture
+def make_user(app):
+    """Factory: creates a basic User without tying them to a student or teacher profile."""
+    def _make(suffix="1", role="student"):
+        with app.app_context():
+            user = User(
+                username=f"user_{suffix}",
+                email=f"user_{suffix}@example.com",
+                password="hashed-placeholder",
+                role=role,
+            )
+            db.session.add(user)
+            db.session.commit()
+            db.session.refresh(user)
+            return user
+    return _make
+
+@pytest.fixture
+def base_user(make_user):
+    """A generic user fixture for testing pure User logic (like profiles)."""
+    return make_user("base")
+
+
 @pytest.fixture(scope="function")
 def teacher_headers(app, teacher):
     """Mint a real JWT for the `teacher` fixture's linked User."""
