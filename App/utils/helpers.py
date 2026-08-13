@@ -1,4 +1,4 @@
-from flask import request, jsonify
+from flask import request
 from functools import wraps
 from pydantic import ValidationError
 
@@ -16,12 +16,7 @@ def validate_request(schema=None):
             raw_data = request.get_json(silent=True) or {}
 
             if schema:
-                try:
-                    validated = schema.model_validate(raw_data)
-                except ValidationError as err:
-                    field_names = [str(e["loc"][-1]) for e in err.errors()]
-                    return jsonify({"error": "Validation failed", "messages": field_names}), 400
-
+                validated = schema.model_validate(raw_data)  # ValidationError now bubbles up
                 return f(validated, *args, **kwargs)
 
             return f(*args, **kwargs)

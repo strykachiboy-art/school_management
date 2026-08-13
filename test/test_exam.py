@@ -73,8 +73,8 @@ def test_create_exam_missing_required_field(client, admin_headers, subject, clas
     assert response.status_code == 400
 
     data = response.get_json()
-    assert data["error"] == "Validation failed"
-    assert "total_marks" in data["messages"]
+    data = response.get_json()
+    assert "total_marks" in data["error"]
 
 
 def test_create_exam_invalid_date_format(client, admin_headers, subject, classroom):
@@ -88,7 +88,7 @@ def test_create_exam_invalid_date_format(client, admin_headers, subject, classro
     }
     response = client.post("/exams/create", json=payload, headers=admin_headers)
     assert response.status_code == 400
-    assert response.get_json()["error"] == "Validation failed"
+    assert "exam_date" in response.get_json()["error"]
 
 
 # ============================== UPDATE exam ==============================
@@ -142,8 +142,7 @@ def test_update_exam_missing_required_field(client, admin_headers, exam, subject
     assert response.status_code == 400
 
     data = response.get_json()
-    assert data["error"] == "Validation failed"
-    assert "total_marks" in data["messages"]
+    assert "total_marks" in data["error"]
 
 
 def test_update_exam_requires_auth(client, exam, subject, classroom):

@@ -1,4 +1,5 @@
 from flask import jsonify, render_template
+from pydantic import ValidationError
 from App.utils.helpers import wants_json
 
 
@@ -17,6 +18,14 @@ def register_error_handlers(app):
         if wants_json():
             return jsonify({"error": message}), 404
         return render_template("errors/404.html", message=message), 404
+
+    @app.errorhandler(ValidationError)
+    def handle_validation_error(e):
+        field_names = [str(err["loc"][-1]) for err in e.errors()]
+        message = "Validation failed: " + ", ".join(field_names)
+        if wants_json():
+            return jsonify({"error": message}), 400
+        return render_template("errors/400.html", message=message), 400
 
     @app.errorhandler(500)
     def handle_500(e):

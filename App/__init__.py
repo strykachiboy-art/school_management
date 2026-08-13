@@ -32,6 +32,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     from App.routes.admin.result_route import result_bp
     from App.routes.admin.admin import admin_bp
     from App.routes.teacher.grade_route import teacher_grade_bp
+    from App.routes.admin import admin_reports_route
     import App.routes.admin.grade_route
     
 

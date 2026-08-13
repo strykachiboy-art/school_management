@@ -1,21 +1,25 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
-# Base schema containing shared fields for results
 class ResultBase(BaseModel):
     student_id: int
     exam_id: int
     marks_obtained: float
 
+    @field_validator("marks_obtained")
+    @classmethod
+    def marks_not_negative(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("marks_obtained cannot be negative")
+        return v
 
-# Schema used for creating or updating a result record
+
 class ResultCreateRequest(ResultBase):
     pass
 
 
-# Schema used for serializing result data in API responses (equivalent to dump_only fields)
 class ResultResponse(ResultBase):
     id: int
     created_at: Optional[datetime] = None
