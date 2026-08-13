@@ -1,7 +1,7 @@
-from flask import Blueprint, flash, jsonify, redirect, request, url_for, abort
+from flask import Blueprint, jsonify, request, abort
 from App.decorators import role_required
-from App.forms.classroom_form import ClassroomForm
-from App.schemas.classroom_schema import ClassroomSchema
+from App.utils.helpers import validate_request
+from App.requests.classroom_request import ClassroomCreateRequest, ClassroomResponse
 from App.services.classroom_services import (
     create_classroom,
     get_all_classrooms,
@@ -10,33 +10,21 @@ from App.services.classroom_services import (
     update_classroom as update_classroom_service,
     delete_classroom as delete_classroom_service,
 )
-from App.utils.helpers import wants_json
 
 classroom_bp = Blueprint("classroom", __name__, url_prefix="/classrooms")
 
 
-@classroom_bp.route("/create", methods=["GET", "POST"])
+@classroom_bp.route("/create", methods=["POST"])
 @role_required("admin")
-def create_classroom_route():
-    form = ClassroomForm()
+@validate_request(ClassroomCreateRequest)
+def create_classroom_route(data: ClassroomCreateRequest):
+    classroom = create_classroom(data)
 
-    if request.method == "POST" and form.validate():
-        classroom = create_classroom(form)
+    if classroom is None:
+        abort(400, description="Could not create classroom")
 
-        if classroom is None:
-            flash("Could not create classroom", "danger")
-            return jsonify({"message": "Could not create classroom"}), 400
-
-        if wants_json():
-            return jsonify(ClassroomSchema().dump(classroom)), 201
-
-        flash("Classroom created successfully", "success")
-        return redirect(url_for("classroom.get_all_classrooms_route"))
-
-    if request.method == "POST":
-        return jsonify({"errors": form.errors}), 400
-
-    return jsonify({"message": "Submit classroom fields via POST"}), 200
+    serialized_classroom = ClassroomResponse.model_validate(classroom).model_dump()
+    return jsonify(serialized_classroom), 201
 
 
 @classroom_bp.route("", methods=["GET"])
@@ -44,16 +32,17 @@ def create_classroom_route():
 def get_all_classrooms_route():
     if request.args.get("list") == "true":
         classrooms = get_all_classroom_list()
-        return jsonify(ClassroomSchema(many=True).dump(classrooms))
+        serialized_list = [ClassroomResponse.model_validate(c).model_dump() for c in classrooms]
+        return jsonify(serialized_list), 200
 
     page = get_all_classrooms(search=request.args.get("search", "", type=str))
 
     return jsonify({
-        "items": ClassroomSchema(many=True).dump(page.items),
+        "items": [ClassroomResponse.model_validate(item).model_dump() for item in page.items],
         "page": page.page,
         "pages": page.pages,
         "total": page.total,
-    })
+    }), 200
 
 
 @classroom_bp.route("/<int:classroom_id>", methods=["GET"])
@@ -61,33 +50,24 @@ def get_all_classrooms_route():
 def get_classroom_detail(classroom_id):
     classroom = get_classroom(classroom_id)
     if classroom is None:
-        abort(404)
+        abort(404, description="Classroom not found")
 
-    return jsonify(ClassroomSchema().dump(classroom))
+    serialized_classroom = ClassroomResponse.model_validate(classroom).model_dump()
+    return jsonify(serialized_classroom), 200
 
 
-@classroom_bp.route("/<int:classroom_id>/edit", methods=["GET", "POST"])
+@classroom_bp.route("/<int:classroom_id>/edit", methods=["PUT", "PATCH"])
 @role_required("admin")
-def update_classroom_route(classroom_id):
+@validate_request(ClassroomCreateRequest)
+def update_classroom_route(data: ClassroomCreateRequest, classroom_id):
     classroom = get_classroom(classroom_id)
     if classroom is None:
-        abort(404)
+        abort(404, description="Classroom not found")
 
-    form = ClassroomForm(obj=classroom)
+    updated_classroom = update_classroom_service(classroom_id, data)
 
-    if request.method == "POST" and form.validate():
-        updated_classroom = update_classroom_service(classroom_id, form)
-
-        if wants_json():
-            return jsonify(ClassroomSchema().dump(updated_classroom))
-
-        flash("Classroom updated successfully", "success")
-        return redirect(url_for("classroom.get_classroom_detail", classroom_id=updated_classroom.id))
-
-    if request.method == "POST":
-        return jsonify({"errors": form.errors}), 400
-
-    return jsonify(ClassroomSchema().dump(classroom))
+    serialized_classroom = ClassroomResponse.model_validate(updated_classroom).model_dump()
+    return jsonify(serialized_classroom), 200
 
 
 @classroom_bp.route("/<int:classroom_id>", methods=["DELETE"])
@@ -96,10 +76,6 @@ def delete_classroom_route(classroom_id):
     deleted = delete_classroom_service(classroom_id)
 
     if not deleted:
-        abort(404)
+        abort(404, description="Classroom not found")
 
-    if wants_json():
-        return jsonify({"message": "Classroom deleted successfully"}), 200
-
-    flash("Classroom deleted successfully", "success")
-    return redirect(url_for("classroom.get_all_classrooms_route"))
+    return jsonify({"message": "Classroom deleted successfully"}), 200

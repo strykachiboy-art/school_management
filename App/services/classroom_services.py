@@ -5,12 +5,12 @@ from App.extensions import db
 from App.models.classroom import Classroom
 
 
-def create_classroom(form):
+def create_classroom(data):
     classroom = Classroom(
-        name=form.name.data,
-        capacity=form.capacity.data or 0,
-        location=form.location.data,
-        teacher_id=form.teacher_id.data or None,
+        name=data.name,
+        capacity=data.capacity or 0,
+        location=data.location,
+        teacher_id=data.teacher_id or None,
     )
 
     try:
@@ -24,7 +24,6 @@ def create_classroom(form):
 
 
 def get_all_classrooms(search="", page=1, per_page=10):
-    # Modern SQLAlchemy 2.0 select statement
     stmt = db.select(Classroom)
     if search:
         stmt = stmt.where(Classroom.name.ilike(f"%{search}%"))
@@ -42,18 +41,17 @@ def get_all_classroom_list():
     return db.session.scalars(stmt).all()
 
 
-def update_classroom(classroom_id, form):
+def update_classroom(classroom_id, data):
     classroom = db.session.get(Classroom, classroom_id)
     if classroom is None:
         return None
 
-    classroom.name = form.name.data or classroom.name
-    classroom.capacity = form.capacity.data if form.capacity.data is not None else classroom.capacity
-    classroom.location = form.location.data or classroom.location
+    classroom.name = data.name or classroom.name
+    classroom.capacity = data.capacity if data.capacity is not None else classroom.capacity
+    classroom.location = data.location or classroom.location
 
-    # Handle optional foreign key properly (convert empty strings to None)
-    if form.teacher_id.data is not None:
-        classroom.teacher_id = form.teacher_id.data or None
+    if data.teacher_id is not None:
+        classroom.teacher_id = data.teacher_id or None
 
     try:
         db.session.commit()

@@ -8,9 +8,9 @@ from App.models.subject import Subject
 
 def create_subject(form):
     subject = Subject(
-        name=form.name.data,
-        code=form.code.data,
-        description=form.description.data,
+        name=form.name,
+        code=form.code,
+        description=form.description,
     )
 
     try:
@@ -32,11 +32,14 @@ def get_all_subjects():
 
 
 def update_subject(subject_id, form):
-    subject = get_subject(subject_id)  # 404s automatically if missing
+    subject = get_subject(subject_id)
 
-    subject.name = form.name.data or subject.name
-    subject.code = form.code.data or subject.code
-    subject.description = form.description.data if form.description.data is not None else subject.description
+    if form.name is not None:
+        subject.name = form.name
+    if form.code is not None:
+        subject.code = form.code
+    if form.description is not None:
+        subject.description = form.description
 
     try:
         db.session.commit()

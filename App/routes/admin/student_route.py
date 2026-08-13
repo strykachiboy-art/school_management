@@ -1,7 +1,8 @@
-from flask import Blueprint, flash, jsonify, redirect, request, url_for, abort
-from App.schemas.student_schema import StudentSchema
+from flask import Blueprint, jsonify, request, abort
 from App.decorators import role_required
-from App.forms.student_form import StudentForm
+from App.utils.helpers import validate_request
+from App.requests.student_request import StudentCreateRequest, StudentResponse
+
 from App.services.student_services import (
     create_students,
     get_all_students,
@@ -13,30 +14,23 @@ from App.services.student_services import (
     filter_admission_number,
     paginate_students,
 )
-from App.utils.helpers import wants_json
 
 student_bp = Blueprint("student", __name__, url_prefix="/students")
 
 
-@student_bp.route("/create", methods=["GET", "POST"])
+@student_bp.route("/create", methods=["POST"])
 @role_required("admin")
-def create_student():
-    form = StudentForm()
-
-    if form.validate_on_submit():
-        student = create_students(form)
-
-        if wants_json():
-            return jsonify(StudentSchema().dump(student)), 201
-
-        flash("Student created successfully", "success")
-        return redirect(url_for("student.get_all_student"))
-
-    return jsonify({"message": "Submit student fields via POST"}), 200
+@validate_request(StudentCreateRequest)
+def create_student(data: StudentCreateRequest):
+    # Pass the validated Pydantic model data to your service layer
+    student = create_students(data)
+    
+    serialized_student = StudentResponse.model_validate(student).model_dump()
+    return jsonify(serialized_student), 201
 
 
 @student_bp.route("", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher")
 def get_all_student():
     search = request.args.get("search", "", type=str)
     classroom_id = request.args.get("classroom_id", None, type=int)
@@ -45,11 +39,11 @@ def get_all_student():
     if request.args.get("paginate") == "true":
         page = paginate_students()
         return jsonify({
-            "items": [StudentSchema().dump(item) for item in page.items],
+            "items": [StudentResponse.model_validate(item).model_dump() for item in page.items],
             "page": page.page,
             "pages": page.pages,
             "total": page.total,
-        })
+        }), 200
     elif search:
         students = search_student_info(search)
     elif classroom_id:
@@ -59,40 +53,33 @@ def get_all_student():
     else:
         students = get_all_students()
 
-    serialized_students = StudentSchema(many=True).dump(students)
-    return jsonify(serialized_students)
+    serialized_students = [StudentResponse.model_validate(s).model_dump() for s in students]
+    return jsonify(serialized_students), 200
 
 
 @student_bp.route("/<int:student_id>", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher")
 def get_student(student_id):
     student = get_student_by_id(student_id)
     if student is None:
-        abort(404)
+        abort(404, description="Student not found")
 
-    return jsonify(StudentSchema().dump(student))
+    serialized_student = StudentResponse.model_validate(student).model_dump()
+    return jsonify(serialized_student), 200
 
 
-@student_bp.route("/<int:student_id>/edit", methods=["GET", "POST"])
+@student_bp.route("/<int:student_id>/edit", methods=["PUT", "PATCH"])
 @role_required("admin")
-def update_student(student_id):
+@validate_request(StudentCreateRequest)
+def update_student(data: StudentCreateRequest, student_id):
     student = get_student_by_id(student_id)
-
     if student is None:
-        abort(404)
+        abort(404, description="Student not found")
 
-    form = StudentForm(obj=student)
-
-    if form.validate_on_submit():
-        updated_student = update_student_service(student_id, form)
-
-        if wants_json():
-            return jsonify(StudentSchema().dump(updated_student))
-
-        flash("Student updated successfully!", "success")
-        return redirect(url_for("student.get_student", student_id=updated_student.id))
-
-    return jsonify(StudentSchema().dump(student))
+    updated_student = update_student_service(student_id, data)
+    
+    serialized_student = StudentResponse.model_validate(updated_student).model_dump()
+    return jsonify(serialized_student), 200
 
 
 @student_bp.route("/<int:student_id>", methods=["DELETE"])
@@ -101,10 +88,6 @@ def delete_student(student_id):
     deleted = delete_student_service(student_id)
 
     if not deleted:
-        abort(404)
+        abort(404, description="Student not found")
 
-    if wants_json():
-        return jsonify({"message": "Student deleted successfully"}), 200
-
-    flash("Student deleted successfully", "success")
-    return redirect(url_for("student.get_all_student"))
+    return jsonify({"message": "Student deleted successfully"}), 200

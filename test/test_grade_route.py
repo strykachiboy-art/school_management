@@ -1,42 +1,52 @@
 import pytest
-from flask import url_for
+from App.extensions import db
+from App.models.result import Result
 
 
-def test_get_student_grade_returns_computed_grade(client, admin_headers, student, result):
-    with client.application.test_request_context():
-        url = url_for("admin.get_student_grade", student_id=student.id)
+@pytest.fixture
+def results_for_student(student, exam, subject, classroom):
+    """Two results for the same student across two different exams."""
+    from App.models.exam import Exam
+    from datetime import date, time
 
-    response = client.get(url, headers=admin_headers)
+    exam2 = Exam(
+        title="Second Exam",
+        description="Second test exam",
+        subject_id=subject.id,
+        classroom_id=classroom.id,
+        exam_date=date(2026, 12, 20),
+        start_time=time(11, 0),
+        duration_minutes=90,
+        total_marks=100,
+    )
+    db.session.add(exam2)
+    db.session.commit()
 
+    r1 = Result(student_id=student.id, exam_id=exam.id, marks_obtained=80)
+    r2 = Result(student_id=student.id, exam_id=exam2.id, marks_obtained=60)
+    db.session.add_all([r1, r2])
+    db.session.commit()
+    return [r1, r2]
+
+
+def test_get_student_grade_success(client, admin_headers, student, results_for_student):
+    response = client.get(f"/admin/students/{student.id}/grade", headers=admin_headers)
     assert response.status_code == 200
+
     data = response.get_json()
-
-    assert data["total"] == result.marks_obtained
-    assert data["average"] == result.marks_obtained
-    assert data["grade"] in {"A", "B", "C", "D", "E", "F"}
-    assert data["remark"] != "unknown"
-
-
-def test_get_student_grade_no_results_returns_fail(client, admin_headers, student):
-    
-    with client.application.test_request_context():
-        url = url_for("admin.get_student_grade", student_id=student.id)
-
-    response = client.get(url, headers=admin_headers)
-
-    assert response.status_code == 200
-    data = response.get_json()
-
-    assert data["total"] == 0
-    assert data["average"] == 0
-    assert data["grade"] == "F"
-    assert data["remark"] == "Fail"
+    assert data["student_id"] == student.id
+    assert data["grade"]["total"] == 140
+    assert data["grade"]["average"] == pytest.approx(70.0)
+    assert data["grade"]["grade"] == "A"
+    assert data["grade"]["remark"] == "Excelent"
 
 
-def test_get_student_grade_requires_auth(client, student):
-    with client.application.test_request_context():
-        url = url_for("admin.get_student_grade", student_id=student.id)
+def test_get_student_grade_no_results_404(client, admin_headers, student):
+    response = client.get(f"/admin/students/{student.id}/grade", headers=admin_headers)
+    assert response.status_code == 404
 
-    response = client.get(url, headers={"Accept": "application/json"})
 
+def test_get_student_grade_requires_admin_role(client, student):
+    # no auth header at all
+    response = client.get(f"/admin/students/{student.id}/grade")
     assert response.status_code in (401, 403)

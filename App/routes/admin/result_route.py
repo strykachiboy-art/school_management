@@ -1,8 +1,9 @@
 from flask import Blueprint, jsonify, request, abort, flash, redirect, url_for
-from marshmallow import ValidationError
 from sqlalchemy.exc import IntegrityError
-from App.schemas.result_schema import ResultSchema
+
 from App.decorators import role_required
+from App.utils.helpers import validate_request
+from App.requests.result_request import ResultCreateRequest, ResultResponse
 
 from App.services.result_services import (
     create_result,
@@ -13,66 +14,44 @@ from App.services.result_services import (
     paginate_result
 )
 
-from App.utils.helpers import wants_json
-
 result_bp = Blueprint("result", __name__, url_prefix="/results")
 
 
-# ================================= Create Exam Route ==================================
-@result_bp.route("/create", methods=["GET", "POST"])
-@role_required("admin")
-def create_result_route():
-    result_data = request.get_json(silent=True) or request.form.to_dict()
-
-    try:
-        result_instance = ResultSchema().load(result_data)
-    except ValidationError as err:
-        return jsonify(err.messages), 422
-
+# ================================= Create Result Route ==================================
+@result_bp.route("/create", methods=["POST"])
+@role_required("admin", "teacher")
+@validate_request(ResultCreateRequest)
+def create_result_route(data: ResultCreateRequest):
     created_result = create_result(
-        student_id=result_instance.student_id, 
-        exam_id=result_instance.exam_id,
-        marks_obtained=result_instance.marks_obtained
+        student_id=data.student_id, 
+        exam_id=data.exam_id,
+        marks_obtained=data.marks_obtained
     )
 
-    serialized_result = ResultSchema().dump(created_result)
-
-    if wants_json():
-        return jsonify(serialized_result), 201
-        
-    flash("Result created successfully")
-    
+    serialized_result = ResultResponse.model_validate(created_result).model_dump()
     return jsonify(serialized_result), 201
 
 
 # ============================ Get All Results Route ============================
 @result_bp.route("/", methods=["GET"])  
-@role_required("admin")
+@role_required("admin", "teacher")
 def get_all_results_route(): 
     results = get_all_result_service()
 
-    serialized_result = ResultSchema(many=True).dump(results)
-    
-    if wants_json():
-        return jsonify(serialized_result), 200
-   
-    return jsonify(serialized_result), 200
+    serialized_results = [ResultResponse.model_validate(r).model_dump() for r in results]
+    return jsonify(serialized_results), 200
 
 
 # ============================ Get Result by ID Route ============================
 @result_bp.route("/<int:result_id>", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher")
 def get_result_route(result_id):
     result = get_result_by_id(result_id)
     
     if not result:
         abort(404, description="Result not found")
     
-    serialized_result = ResultSchema().dump(result)
-    
-    if wants_json():
-        return jsonify(serialized_result), 200
-    
+    serialized_result = ResultResponse.model_validate(result).model_dump()
     return jsonify(serialized_result), 200
 
 
@@ -85,16 +64,12 @@ def delete_result_route(result_id):
     if not deleted:
         abort(404, description="Result not found")
     
-    if wants_json():
-        return jsonify({"message": "Result deleted successfully"}), 200
-    
-    flash("Result deleted successfully")
-    return redirect(url_for("result.get_all_results_route"))
+    return jsonify({"message": "Result deleted successfully"}), 200
 
 
 # ============================ Search Result Route ============================
 @result_bp.route("/search", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher")
 def search_result_route():
     try:
         student_id = request.args.get("student_id", type=int)
@@ -103,19 +78,18 @@ def search_result_route():
         if request.args.get("paginate") == "true":
             page = paginate_result()
             return jsonify({
-                "items": ResultSchema(many=True).dump(page.items),
+                "items": [ResultResponse.model_validate(r).model_dump() for r in page.items],
                 "page": page.page,
                 "pages": page.pages,
                 "total": page.total,
-            })
+            }), 200
         elif student_id or exam_id:
             results = search_results(student_id=student_id, exam_id=exam_id)
         else:
             results = get_all_result_service()
 
-        return jsonify(ResultSchema(many=True).dump(results))
+        serialized_results = [ResultResponse.model_validate(r).model_dump() for r in results]
+        return jsonify(serialized_results), 200
 
     except Exception as e:
-        if wants_json():
-            return jsonify({"error": "An unexpected error occurred."}), 500
-        abort(500)
+        abort(500, description="An unexpected error occurred.")

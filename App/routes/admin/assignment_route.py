@@ -1,7 +1,6 @@
-from flask import Blueprint, flash, jsonify, redirect, request, abort
+from flask import Blueprint, jsonify, request, abort
 from App.decorators import role_required
-from App.utils.helpers import wants_json
-from App.schemas.subject_schema import SubjectSchema
+from App.requests.subject_request import SubjectResponse
 from App.services.assignment_service import (
     assign_subject_to_teachers,
     remove_subject_from_teachers,
@@ -38,11 +37,7 @@ def assign_subject_to_teachers_route(subject_id):
     except ValueError as e:
         abort(400, description=str(e))
 
-    if wants_json():
-        return jsonify({"message": "Subject assigned to teachers successfully"}), 200
-
-    flash("Subject assigned to teachers successfully", "success")
-    return redirect(request.referrer or "/")
+    return jsonify({"message": "Subject assigned to teachers successfully"}), 200
 
 
 @ass_bp.route("/subjects/<int:subject_id>/remove/teachers", methods=["DELETE"])
@@ -55,11 +50,7 @@ def remove_subject_from_teachers_route(subject_id):
     except ValueError as e:
         abort(400, description=str(e))
 
-    if wants_json():
-        return jsonify({"message": "Subject removed from teachers successfully"}), 200
-
-    flash("Subject removed from teachers successfully", "success")
-    return redirect(request.referrer or "/")
+    return jsonify({"message": "Subject removed from teachers successfully"}), 200
 
 
 @ass_bp.route("/teachers/<int:teacher_id>/subjects", methods=["GET"])
@@ -70,7 +61,8 @@ def get_teacher_subjects_route(teacher_id):
     except ValueError as e:
         abort(404, description=str(e))
 
-    return jsonify(SubjectSchema(many=True).dump(subjects))
+    serialized_subjects = [SubjectResponse.model_validate(s).model_dump() for s in subjects]
+    return jsonify(serialized_subjects), 200
 
 
 # ====================================== Student assignment routes ===============================================
@@ -84,11 +76,7 @@ def assign_subject_to_students_route(subject_id):
     except ValueError as e:
         abort(400, description=str(e))
 
-    if wants_json():
-        return jsonify({"message": "Subject assigned to students successfully"}), 200
-
-    flash("Subject assigned to students successfully", "success")
-    return redirect(request.referrer or "/")
+    return jsonify({"message": "Subject assigned to students successfully"}), 200
 
 
 @ass_bp.route("/subjects/<int:subject_id>/remove/students", methods=["DELETE"])
@@ -101,11 +89,7 @@ def remove_subject_from_students_route(subject_id):
     except ValueError as e:
         abort(400, description=str(e))
 
-    if wants_json():
-        return jsonify({"message": "Subject removed from students successfully"}), 200
-
-    flash("Subject removed from students successfully", "success")
-    return redirect(request.referrer or "/")
+    return jsonify({"message": "Subject removed from students successfully"}), 200
 
 
 @ass_bp.route("/students/<int:student_id>/subjects", methods=["GET"])
@@ -116,7 +100,8 @@ def get_student_subjects_route(student_id):
     except ValueError as e:
         abort(404, description=str(e))
 
-    return jsonify(SubjectSchema(many=True).dump(subjects))
+    serialized_subjects = [SubjectResponse.model_validate(s).model_dump() for s in subjects]
+    return jsonify(serialized_subjects), 200
 
 
 # ====================================== Classroom assignment routes ===============================================
@@ -130,11 +115,7 @@ def assign_subject_to_classrooms_route(subject_id):
     except ValueError as e:
         abort(400, description=str(e))
 
-    if wants_json():
-        return jsonify({"message": "Subject assigned to classrooms successfully"}), 200
-
-    flash("Subject assigned to classrooms successfully", "success")
-    return redirect(request.referrer or "/")
+    return jsonify({"message": "Subject assigned to classrooms successfully"}), 200
 
 
 @ass_bp.route("/subjects/<int:subject_id>/remove/classrooms", methods=["DELETE"])
@@ -147,11 +128,7 @@ def remove_subject_from_classrooms_route(subject_id):
     except ValueError as e:
         abort(400, description=str(e))
 
-    if wants_json():
-        return jsonify({"message": "Subject removed from classrooms successfully"}), 200
-
-    flash("Subject removed from classrooms successfully", "success")
-    return redirect(request.referrer or "/")
+    return jsonify({"message": "Subject removed from classrooms successfully"}), 200
 
 
 @ass_bp.route("/classrooms/<int:classroom_id>/subjects", methods=["GET"])
@@ -162,4 +139,5 @@ def get_classroom_subjects_route(classroom_id):
     except ValueError as e:
         abort(404, description=str(e))
 
-    return jsonify(SubjectSchema(many=True).dump(subjects))
+    serialized_subjects = [SubjectResponse.model_validate(s).model_dump() for s in subjects]
+    return jsonify(serialized_subjects), 200

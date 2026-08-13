@@ -6,8 +6,18 @@ from sqlalchemy.exc import IntegrityError
 from App.extensions import db
 
 # ================================== Create Exam ===============================
-def create_exam(exam):
-    """Persist an already-constructed Exam instance (e.g. from ExamSchema().load())."""
+def create_exam(data):
+    """data is an ExamCreateRequest (Pydantic) — build the Exam model here."""
+    exam = Exam(
+        title=data.title,
+        description=data.description,
+        subject_id=data.subject_id,
+        classroom_id=data.classroom_id,
+        exam_date=data.exam_date,
+        start_time=data.start_time,
+        duration_minutes=data.duration_minutes,
+        total_marks=data.total_marks,
+    )
     try:
         db.session.add(exam)
         db.session.commit()
@@ -16,7 +26,6 @@ def create_exam(exam):
         abort(400, description="A subject with that code already exists.")
 
     return exam
-
 
 #=============================== Get exam_id ================================
 def get_exam(exam_id):
@@ -37,19 +46,17 @@ def update_exam(exam_id, form):
     if exam is None:
         return None
 
-    exam.title = form.title.data
-    exam.description = form.description.data
-    exam.subject_id = form.subject_id.data
-    exam.classroom_id = form.classroom_id.data
-    exam.exam_date = form.exam_date.data
-    exam.start_time = form.start_time.data
-    exam.duration_minutes = form.duration_minutes.data
-    exam.total_marks = form.total_marks.data
+    exam.title = form.title
+    exam.description = form.description
+    exam.subject_id = form.subject_id
+    exam.classroom_id = form.classroom_id
+    exam.exam_date = form.exam_date
+    exam.start_time = form.start_time
+    exam.duration_minutes = form.duration_minutes
+    exam.total_marks = form.total_marks
 
     db.session.commit()
-
     return exam
-
 
 # ============================ Delete Exam ===============================
 def delete_exam(exam_id):

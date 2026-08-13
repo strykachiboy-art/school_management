@@ -1,16 +1,17 @@
+# test/test_classroom.py
+
 from App.models.classroom import Classroom
 
 
 def test_create_classroom_success(client, admin_headers):
-    payload = {"name": "Room 101", "capacity": "25", "location": "Building A"}
-    response = client.post("/classrooms/create", data=payload, headers=admin_headers)
+    payload = {"name": "Room 101", "capacity": 25, "location": "Building A"}
+    # Use json=payload instead of data=payload so Flask sends a proper JSON body for Pydantic validation
+    response = client.post("/classrooms/create", json=payload, headers=admin_headers)
     assert response.status_code == 201
     data = response.get_json()
     assert data["name"] == "Room 101"
     assert data["capacity"] == 25
 
-
-# In test/test_classroom.py
 
 def test_create_classroom_missing_required_field(client, admin_headers, app):
     from App.extensions import db
@@ -18,11 +19,13 @@ def test_create_classroom_missing_required_field(client, admin_headers, app):
     with app.app_context():
         before_count = db.session.query(Classroom).count()
     
-    payload = {"capacity": "25"}  
-    response = client.post("/classrooms/create", data=payload, headers=admin_headers)
+    payload = {"capacity": 25}  
+    # Use json=payload here as well
+    response = client.post("/classrooms/create", json=payload, headers=admin_headers)
     
-    # Change response.status_code == 200 to 400:
     assert response.status_code == 400
+
+
 def test_get_classroom_detail_success(client, admin_headers, classroom):
     response = client.get(f"/classrooms/{classroom.id}", headers=admin_headers)
     assert response.status_code == 200

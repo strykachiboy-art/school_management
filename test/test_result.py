@@ -1,3 +1,5 @@
+# test/test_result.py
+
 def test_create_result_success(client, admin_headers, student, exam):
     payload = {
         "student_id": student.id,
@@ -5,10 +7,10 @@ def test_create_result_success(client, admin_headers, student, exam):
         "marks_obtained": 92.5
     }
     
-    # Test JSON creation
     headers = admin_headers.copy()
     headers["Accept"] = "application/json"
     
+    # Use json=payload so Flask sends a proper JSON body for Pydantic validation
     response = client.post("/results/create", json=payload, headers=headers)
     assert response.status_code == 201
     data = response.get_json()
@@ -24,8 +26,9 @@ def test_create_result_validation_error(client, admin_headers):
     headers = admin_headers.copy()
     headers["Accept"] = "application/json"
     
+    # Use json=payload here as well
     response = client.post("/results/create", json=payload, headers=headers)
-    assert response.status_code == 422
+    assert response.status_code == 400
 
 def test_get_all_results(client, admin_headers, result):
     headers = admin_headers.copy()

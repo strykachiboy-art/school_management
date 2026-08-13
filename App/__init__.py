@@ -43,6 +43,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     app.register_blueprint(admin_bp, url_prefix="/admin")
 
     register_error_handlers(app)
+    
 
     @app.before_request
     def load_current_user():

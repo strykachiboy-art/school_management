@@ -1,3 +1,5 @@
+# test/test_assignment.py
+
 import pytest
 
 
@@ -26,7 +28,9 @@ def test_assign_subject_to_teachers_already_assigned(client, admin_headers, subj
         headers=admin_headers,
     )
     assert response.status_code == 400
-    assert "already assigned" in response.get_json()["error"].lower() or "already assigned" in str(response.get_json())
+    res_data = response.get_json()
+    error_msg = res_data.get("error") or res_data.get("description") or str(res_data)
+    assert "already assigned" in error_msg.lower()
 
 
 def test_assign_subject_to_teachers_subject_not_found(client, admin_headers, teacher):

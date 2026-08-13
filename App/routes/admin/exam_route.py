@@ -1,54 +1,37 @@
-from flask import Blueprint, jsonify, request, abort, flash, redirect, url_for
-from marshmallow import ValidationError
+from flask import Blueprint, jsonify, request, abort
 from sqlalchemy.exc import IntegrityError
-from App.schemas.exam_schema import ExamSchema
 from App.decorators import role_required
-
+from App.utils.helpers import validate_request
+from App.requests.exam_request import ExamCreateRequest, ExamResponse
 from App.services.exam_services import (
     create_exam,
     get_exam as get_exam_by_id,
     get_all_exam,
+    update_exam,
     delete_exam,
     search_exams,
     paginate_exams
 )
 
-from App.utils.helpers import wants_json
-
-
 exam_bp = Blueprint('exam', __name__, url_prefix="/exams")
 
 
 # ================================= Create Exam Route ==================================
-@exam_bp.route("/create", methods=["GET", "POST"])
+@exam_bp.route("/create", methods=["POST"])
 @role_required("admin")
-def create_exam_route():
-    if request.method == "POST":
-        try:
-            # Load and validate request data into an Exam model instance using load_instance = True
-            exam_data = request.get_json(silent=True) or request.form.to_dict()
-            exam_instance = ExamSchema().load(exam_data)
-            
-            # Pass the loaded instance or data to your service layer
-            created_exam = create_exam(exam_instance)
+@validate_request(ExamCreateRequest)
+def create_exam_route(data: ExamCreateRequest):
+    try:
+        created_exam = create_exam(data)
 
-            if wants_json():
-                return jsonify(ExamSchema().dump(created_exam)), 201
+        if created_exam is None:
+            return jsonify({"error": "Could not create exam"}), 400
 
-            flash("Exam created successfully", "success")
-            return redirect(url_for("exam.get_exams"))
+        serialized_exam = ExamResponse.model_validate(created_exam).model_dump(mode="json")
+        return jsonify(serialized_exam), 201
 
-        except ValidationError as e:
-            if wants_json():
-                return jsonify({"error": "Validation failed", "messages": e.messages}), 400
-            flash("Validation failed — check your inputs.", "danger")
-            
-        except IntegrityError:
-            if wants_json():
-                return jsonify({"error": "Database error — duplicate or invalid constraint."}), 400
-            flash("Could not create exam — check for duplicate entries.", "danger")
-
-    return jsonify({"message": "Submit exam fields via POST"}), 200
+    except IntegrityError:
+        return jsonify({"error": "Database error — duplicate or invalid constraint."}), 400
 
 
 # ================================== Get All Exams Route ==================================
@@ -62,66 +45,58 @@ def get_exams():
 
         if request.args.get("paginate") == "true":
             page = paginate_exams()
-            if wants_json():
-                return jsonify({
-                    "items": ExamSchema(many=True).dump(page.items),
-                    "page": page.page,
-                    "pages": page.pages,
-                    "total": page.total,
-                })
             return jsonify({
-                "items": ExamSchema(many=True).dump(page.items),
+                "items": [ExamResponse.model_validate(item).model_dump(mode="json") for item in page.items],
                 "page": page.page,
                 "pages": page.pages,
                 "total": page.total,
-            })
+            }), 200
         elif search or subject_id or classroom_id:
             exams = search_exams(search)
         else:
             exams = get_all_exam()
 
-        if wants_json():
-            return jsonify(ExamSchema(many=True).dump(exams))
-
-        return jsonify(ExamSchema(many=True).dump(exams))
+        serialized_exams = [ExamResponse.model_validate(e).model_dump(mode="json") for e in exams]
+        return jsonify(serialized_exams), 200
         
     except Exception as e:
-        if wants_json():
-            return jsonify({"error": "An unexpected error occurred."}), 500
-        abort(500)
+        abort(500, description="An unexpected error occurred.")
 
 
-
-#============================== get exam id ===============================
+# =============================== Get Exam by ID Route ===============================
 @exam_bp.route("/<int:exam_id>", methods=["GET"])
 @role_required("admin", "teacher")
 def get_exam(exam_id):
     exam = get_exam_by_id(exam_id)
     if exam is None:
-        if wants_json():
-            return jsonify({"error": "Exam not found"}), 404
-        abort(404)
+        abort(404, description="Exam not found")
 
-    if wants_json():
-        return jsonify(ExamSchema().dump(exam))
-
-    return jsonify(ExamSchema().dump(exam))
+    serialized_exam = ExamResponse.model_validate(exam).model_dump(mode="json")
+    return jsonify(serialized_exam), 200
 
 
+# =============================== Update Exam Route =====================================
+@exam_bp.route("/<int:exam_id>/edit", methods=["PUT", "PATCH"])
+@role_required("admin")
+@validate_request(ExamCreateRequest)
+def update_exam_route(data: ExamCreateRequest, exam_id):
+    exam = get_exam_by_id(exam_id)
+    if exam is None:
+        abort(404, description="Exam not found")
 
-#============================== remove exam =====================================
+    updated_exam = update_exam(exam_id, data)
+
+    serialized_exam = ExamResponse.model_validate(updated_exam).model_dump(mode="json")
+    return jsonify(serialized_exam), 200
+
+
+# =============================== Remove Exam Route =====================================
 @exam_bp.route("/<int:exam_id>", methods=["DELETE"])
 @role_required("admin")
 def remove_exam(exam_id):
     deleted = delete_exam(exam_id)
     
     if not deleted:
-        if wants_json():
-            return jsonify({"error": "Exam not found"}), 404
-        abort(404)
+        abort(404, description="Exam not found")
 
-    if wants_json():
-        return jsonify({"message": "Exam deleted successfully"}), 200
-
-    flash("Exam deleted successfully", "success")
-    return redirect(url_for("exam.get_exams"))
+    return jsonify({"message": "Exam deleted successfully"}), 200

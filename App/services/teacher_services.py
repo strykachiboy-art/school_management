@@ -10,18 +10,18 @@ from App.models.user import User
 
 def create_teachers(form):
     user = User(
-        username=form.username.data,
-        email=form.email.data,
-        password=generate_password_hash(form.password.data),
+        username=form.username,
+        email=form.email,
+        password=generate_password_hash(form.password),
         role="teacher",
     )
     db.session.add(user)
 
     teacher = Teacher(
-        full_name=form.full_name.data,
-        email=form.email.data,
-        phone=form.phone.data,
-        subject=form.subject.data,
+        full_name=form.full_name,
+        email=form.email,
+        phone=form.phone,
+        subject=form.subject,
     )
 
     try:
@@ -49,13 +49,13 @@ def update_teachers(teacher_id, form):
     if teacher is None:
         return None
 
-    teacher.full_name = form.full_name.data or teacher.full_name
-    teacher.email = form.email.data or teacher.email
-    teacher.phone = form.phone.data or teacher.phone
-    teacher.subject = form.subject.data or teacher.subject
+    teacher.full_name = form.full_name or teacher.full_name
+    teacher.email = form.email or teacher.email
+    teacher.phone = form.phone or teacher.phone
+    teacher.subject = form.subject or teacher.subject
 
     if teacher.user is not None:
-        teacher.user.email = form.email.data or teacher.user.email
+        teacher.user.email = form.email or teacher.user.email
 
     try:
         db.session.commit()

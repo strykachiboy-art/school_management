@@ -1,3 +1,5 @@
+# test/test_exam.py
+
 import pytest
 
 
@@ -9,7 +11,7 @@ def test_get_exam_success(client, admin_headers, exam):
 
     data = response.get_json()
     assert data["id"] == exam.id
-    assert data["title"] == "Midterm Exam"
+    assert data["title"] == "Exam 1"
     assert data["total_marks"] == 100
 
 
@@ -59,7 +61,7 @@ def test_create_exam_success(client, admin_headers, subject, classroom):
 
 
 def test_create_exam_missing_required_field(client, admin_headers, subject, classroom):
-    """total_marks is required=True in ExamSchema; omitting it should 400."""
+    """total_marks is required in ExamSchema; omitting it should 400."""
     payload = {
         "title": "Incomplete Exam",
         "subject_id": subject.id,
@@ -89,6 +91,74 @@ def test_create_exam_invalid_date_format(client, admin_headers, subject, classro
     assert response.get_json()["error"] == "Validation failed"
 
 
+# ============================== UPDATE exam ==============================
+
+def test_update_exam_success(client, admin_headers, exam, subject, classroom):
+    payload = {
+        "title": "Updated Midterm",
+        "description": "Rescheduled",
+        "subject_id": subject.id,
+        "classroom_id": classroom.id,
+        "exam_date": "2026-12-20",
+        "start_time": "11:00:00",
+        "duration_minutes": 90,
+        "total_marks": 100,
+    }
+    response = client.put(f"/exams/{exam.id}/edit", json=payload, headers=admin_headers)
+    assert response.status_code == 200
+
+    data = response.get_json()
+    assert data["id"] == exam.id
+    assert data["title"] == "Updated Midterm"
+    assert data["start_time"] == "11:00:00"
+
+    follow_up = client.get(f"/exams/{exam.id}", headers=admin_headers)
+    assert follow_up.get_json()["title"] == "Updated Midterm"
+
+
+def test_update_exam_not_found(client, admin_headers, subject, classroom):
+    payload = {
+        "title": "Ghost Exam",
+        "subject_id": subject.id,
+        "classroom_id": classroom.id,
+        "exam_date": "2026-12-20",
+        "start_time": "11:00:00",
+        "total_marks": 100,
+    }
+    response = client.put("/exams/99999/edit", json=payload, headers=admin_headers)
+    assert response.status_code == 404
+    assert response.get_json()["error"] == "Exam not found"
+
+
+def test_update_exam_missing_required_field(client, admin_headers, exam, subject, classroom):
+    payload = {
+        "title": "Incomplete Update",
+        "subject_id": subject.id,
+        "classroom_id": classroom.id,
+        "exam_date": "2026-12-20",
+        "start_time": "11:00:00",
+    }
+    response = client.put(f"/exams/{exam.id}/edit", json=payload, headers=admin_headers)
+    assert response.status_code == 400
+
+    data = response.get_json()
+    assert data["error"] == "Validation failed"
+    assert "total_marks" in data["messages"]
+
+
+def test_update_exam_requires_auth(client, exam, subject, classroom):
+    payload = {
+        "title": "No Auth Update",
+        "subject_id": subject.id,
+        "classroom_id": classroom.id,
+        "exam_date": "2026-12-20",
+        "start_time": "11:00:00",
+        "total_marks": 100,
+    }
+    response = client.put(f"/exams/{exam.id}/edit", json=payload)
+    assert response.status_code in (401, 403)
+
+
 # ============================== DELETE exam ==============================
 
 def test_delete_exam_success(client, admin_headers, exam):
@@ -96,7 +166,6 @@ def test_delete_exam_success(client, admin_headers, exam):
     assert response.status_code == 200
     assert response.get_json()["message"] == "Exam deleted successfully"
 
-    # confirm it's actually gone
     follow_up = client.get(f"/exams/{exam.id}", headers=admin_headers)
     assert follow_up.status_code == 404
 
@@ -110,6 +179,5 @@ def test_delete_exam_not_found(client, admin_headers):
 # ============================== Auth guard ==============================
 
 def test_get_exam_requires_auth(client, exam):
-    """No Authorization header at all should not return exam data."""
     response = client.get(f"/exams/{exam.id}")
     assert response.status_code in (401, 403)

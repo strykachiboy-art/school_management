@@ -1,3 +1,5 @@
+# test/test_student.py
+
 def test_create_student_success(client, admin_headers, classroom):
     payload = {
         "username": "new_student",
@@ -6,9 +8,11 @@ def test_create_student_success(client, admin_headers, classroom):
         "phone": "0987654321",
         "admission_number": "ADM001",
         "classroom_id": str(classroom.id),
-        "password": "securepass123",  # required in practice despite Optional() — see bug note above
+        "password": "securepass123",
     }
-    response = client.post("/students/create", data=payload, headers=admin_headers)
+    # Use json=payload instead of data=payload so Flask sends a proper JSON body 
+    # for Pydantic's @validate_request decorator
+    response = client.post("/students/create", json=payload, headers=admin_headers)
     assert response.status_code == 201
     data = response.get_json()
     assert data["full_name"] == "John Smith"
@@ -23,7 +27,7 @@ def test_create_student_duplicate_username(client, admin_headers, student):
         "email": "unique_email2@example.com",
         "password": "securepass123",
     }
-    response = client.post("/students/create", data=payload, headers=admin_headers)
+    response = client.post("/students/create", json=payload, headers=admin_headers)
     assert response.status_code == 400
 
 

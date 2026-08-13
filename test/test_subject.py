@@ -1,6 +1,9 @@
+# test/test_subject.py
+
 def test_create_subject_success(client, admin_headers):
     payload = {"name": "Physics", "code": "PHYS101", "description": "Intro physics"}
-    response = client.post("/subjects/create", data=payload, headers=admin_headers)
+    # Use json=payload instead of data=payload so Flask sends a JSON payload for Pydantic validation
+    response = client.post("/subjects/create", json=payload, headers=admin_headers)
     assert response.status_code == 201
     data = response.get_json()
     assert data["name"] == "Physics"
@@ -8,10 +11,10 @@ def test_create_subject_success(client, admin_headers):
 
 
 def test_create_subject_missing_required_field(client, admin_headers):
-    """Validation failure with Accept: application/json now returns
-    a JSON 400, not HTML."""
+    """Validation failure with Pydantic returns a JSON 400 Bad Request."""
     payload = {"description": "No name or code"}
-    response = client.post("/subjects/create", data=payload, headers=admin_headers)
+    # Use json=payload here as well
+    response = client.post("/subjects/create", json=payload, headers=admin_headers)
     assert response.status_code == 400
     assert response.is_json
 
@@ -23,8 +26,7 @@ def test_get_subject_detail_success(client, admin_headers, subject):
 
 
 def test_get_subject_detail_not_found(client, admin_headers):
-    """get_subject() uses db.get_or_404 internally — confirms it still
-    resolves to a JSON 404 via the central error handler."""
+    """Confirms it resolves to a JSON 404 via the central error handler."""
     response = client.get("/subjects/99999", headers=admin_headers)
     assert response.status_code == 404
 

@@ -1,3 +1,5 @@
+# test/conftest.py
+
 import pytest
 from datetime import date, time
 
@@ -37,7 +39,9 @@ def make_exam(app, subject, classroom):
     return _make
 
 @pytest.fixture
-def exam(make_exam):
+def exam(make_exam, subject, classroom):
+    # Fixed fixture definition to properly depend on app context/fixtures if needed, 
+    # using make_exam("1") cleanly.
     return make_exam("1")
 
 @pytest.fixture
@@ -57,7 +61,6 @@ def make_result(app, student, exam):
     return _make
 
 @pytest.fixture
-
 def result(make_result):
     return make_result()
 
@@ -210,23 +213,3 @@ def classroom(app):
         db.session.commit()
         db.session.refresh(cls)
         yield cls
-
-
-@pytest.fixture
-def exam(app, subject, classroom):
-    """A persisted Exam row for get/delete tests."""
-    with app.app_context():
-        exam = Exam(
-            title="Midterm Exam",
-            description="Covers chapters 1-5",
-            subject_id=subject.id,
-            classroom_id=classroom.id,
-            exam_date=date(2026, 12, 1),
-            start_time=time(9, 0),
-            duration_minutes=90,
-            total_marks=100,
-        )
-        db.session.add(exam)
-        db.session.commit()
-        db.session.refresh(exam)
-        yield exam

@@ -10,19 +10,19 @@ from App.models.user import User
 
 def create_students(form):
     user = User(
-        username=form.username.data,
-        email=form.email.data,
-        password=generate_password_hash(form.password.data),
+        username=form.username,
+        email=form.email,
+        password=generate_password_hash(form.password),
         role="student",
     )
     db.session.add(user)
 
     student = Student(
-        full_name=form.full_name.data,
-        email=form.email.data,
-        phone=form.phone.data,
-        admission_number=form.admission_number.data,
-        classroom_id=form.classroom_id.data,
+        full_name=form.full_name,
+        email=form.email,
+        phone=form.phone,
+        admission_number=form.admission_number,
+        classroom_id=form.classroom_id,
     )
 
     try:
@@ -50,14 +50,14 @@ def update_student(student_id, form):
     if student is None:
         return None
 
-    student.full_name = form.full_name.data or student.full_name
-    student.email = form.email.data or student.email
-    student.phone = form.phone.data or student.phone
-    student.admission_number = form.admission_number.data or student.admission_number
-    student.classroom_id = form.classroom_id.data if form.classroom_id.data is not None else student.classroom_id
+    student.full_name = form.full_name or student.full_name
+    student.email = form.email or student.email
+    student.phone = form.phone or student.phone
+    student.admission_number = form.admission_number or student.admission_number
+    student.classroom_id = form.classroom_id if form.classroom_id is not None else student.classroom_id
 
     if student.user is not None:
-        student.user.email = form.email.data or student.user.email
+        student.user.email = form.email or student.user.email
 
     try:
         db.session.commit()
