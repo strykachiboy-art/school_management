@@ -16,6 +16,43 @@ from App.models.student import Student
 
 from App.models.result import Result
 
+@pytest.fixture(scope="function")
+def user_with_password(app):
+    """Creates a User with a real, verifiable password hash (not the placeholder)."""
+    from flask_jwt_extended import create_access_token
+    from App.utils.password import hash_password
+    from App.models.user import User
+
+    plain_password = "OriginalPass123"
+
+    with app.app_context():
+        user = User(
+            username="pwtest_user",
+            email="pwtest_user@example.com",
+            password=hash_password(plain_password),
+            role="student",
+        )
+        db.session.add(user)
+        db.session.commit()
+        db.session.refresh(user)
+
+        token = create_access_token(
+            identity=str(user.id),
+            additional_claims={"role": "student"},
+        )
+
+        user_id = user.id  # capture before leaving the context
+
+    return {
+        "user_id": user_id,
+        "plain_password": plain_password,
+        "headers": {
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+        },
+    }
+
+
 @pytest.fixture
 def make_user(app):
     """Factory: creates a basic User without tying them to a student or teacher profile."""

@@ -34,17 +34,20 @@ def test_update_profile_partial_success(app, base_user):
         assert updated_user.email == "new@example.com"
 
 
-def test_update_profile_duplicate_username(app, base_user, make_user):
-    """Test updating to a username that already belongs to someone else."""
-    # Create a secondary user in the database to cause a conflict
+def test_update_profile_duplicate_username_rolls_back(app, base_user, make_user):
+    """Confirms username isn't left mutated in session after a duplicate-username failure."""
     conflict_user = make_user("conflict")
     data = ProfileUpdateRequest(username=conflict_user.username)
-    
+    original_username = base_user.username
+
     with app.app_context():
         db.session.add(base_user)
 
         with pytest.raises(ValueError, match="Username already exists"):
             update_profile(base_user, data)
+
+        assert base_user.username == original_username
+        assert db.session.is_active
 
 
 def test_update_profile_duplicate_email(app, base_user, make_user):

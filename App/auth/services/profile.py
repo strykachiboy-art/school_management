@@ -3,6 +3,12 @@ from App.models.user import User
 from App.extensions import db
 from App.auth.request.profile import ProfileUpdateRequest
 
+from sqlalchemy.exc import SQLAlchemyError
+from App.models.user import User
+from App.extensions import db
+from App.auth.request.profile import ProfileUpdateRequest
+
+
 def update_profile(user: User, data: ProfileUpdateRequest) -> User:
     try:
         # Check username uniqueness
@@ -12,6 +18,7 @@ def update_profile(user: User, data: ProfileUpdateRequest) -> User:
                 User.id != user.id
             ).first()
             if existing_user:
+                db.session.rollback()
                 raise ValueError("Username already exists")
             user.username = data.username
 
@@ -22,6 +29,7 @@ def update_profile(user: User, data: ProfileUpdateRequest) -> User:
                 User.id != user.id
             ).first()
             if existing_user:
+                db.session.rollback()
                 raise ValueError("Email already exists")
             user.email = data.email
 
@@ -29,5 +37,4 @@ def update_profile(user: User, data: ProfileUpdateRequest) -> User:
         return user
     except SQLAlchemyError as e:
         db.session.rollback()
-        # You can log the error here: logger.error(f"DB Error: {e}")
         raise RuntimeError("A database error occurred while updating the profile.") from e

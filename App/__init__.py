@@ -34,6 +34,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     from App.routes.teacher.grade_route import teacher_grade_bp
     from App.routes.admin import admin_reports_route
     from App.auth.auth import auth_bp
+    from App.auth.routes.change_password import change_password_route 
     import App.routes.admin.grade_route
     
 
