@@ -16,6 +16,33 @@ from App.models.student import Student
 
 from App.models.result import Result
 
+@pytest.fixture(scope="function")
+def teacher_headers(app, teacher):
+    """Mint a real JWT for the `teacher` fixture's linked User."""
+    from flask_jwt_extended import create_access_token
+
+    with app.app_context():
+        token = create_access_token(
+            identity=str(teacher.user_id),
+            additional_claims={"role": "teacher"},
+        )
+
+    return {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+    }
+
+
+@pytest.fixture
+def student_in_teacher_classroom(app, teacher, classroom, student):
+    """Assigns `classroom` to `teacher`, and puts `student` in that classroom."""
+    classroom.teacher_id = teacher.id
+    student.classroom_id = classroom.id
+    db.session.add(classroom)
+    db.session.add(student)
+    db.session.commit()
+    db.session.refresh(student)
+    return student
 
 @pytest.fixture
 def make_exam(app, subject, classroom):

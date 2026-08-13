@@ -23,5 +23,5 @@ class Teacher(db.Model):
     updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow)
     
     subjects = db.relationship("Subject", back_populates = "teachers", secondary = teacher_subjects)
-    user = db.relationship("User", backref="teacher_profile")
+    user = db.relationship("User", backref=db.backref("teacher_profile", uselist=False))
     classrooms = db.relationship("Classroom", back_populates="teacher")
