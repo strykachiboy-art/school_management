@@ -4,9 +4,11 @@ from App.decorators import role_required
 from App.utils.helpers import validate_request
 from App.auth.request.change_password import ChangePasswordRequest
 from App.auth.services.change_password import change_password
+from App.extensions import limiter
 
 
 @auth_bp.route("/change_password", methods=["PATCH"])
+@limiter.limit("5 per minute")
 @role_required("admin", "teacher", "student")
 @validate_request(ChangePasswordRequest)
 def change_password_route(validated):
