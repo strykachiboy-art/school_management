@@ -1,7 +1,12 @@
-from flask import jsonify, render_template
+from flask import jsonify, render_template, request
 from pydantic import ValidationError
 from App.utils.helpers import wants_json
 
+def wants_json():
+    return (
+        request.is_json or 
+        request.accept_mimetypes['application/json'] >= request.accept_mimetypes['text/html']
+    )
 
 def register_error_handlers(app):
 
