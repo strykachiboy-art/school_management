@@ -40,6 +40,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     import App.auth.routes.log_out
     import App.auth.routes.register
     
+    
 
     app.register_blueprint(subject_bp, url_prefix="/subjects")
     app.register_blueprint(classroom_bp, url_prefix="/classrooms")
