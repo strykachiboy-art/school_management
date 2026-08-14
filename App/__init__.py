@@ -39,6 +39,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     import App.routes.admin.grade_route
     import App.auth.routes.log_out
     import App.auth.routes.register
+    import App.auth.routes.login
     
     
 
