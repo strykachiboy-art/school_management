@@ -23,7 +23,9 @@ def app():
         "TESTING": True,
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
         "JWT_SECRET_KEY": "test-secret-key-that-is-at-least-32-bytes-long",
-        "RATELIMIT_ENABLED": False,
+        "RATELIMIT_ENABLED": True,
+        "RATELIMIT_STORAGE_URI": "memory://", 
+        
         "WTF_CSRF_ENABLED": False,
         "ADMIN_ACCESS_ENABLED": True,
     }

@@ -1,6 +1,6 @@
 """School management application package."""
 from typing import Optional
-from flask import Flask, g
+from flask import Flask, g, request
 from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
 from App.models.user import User
 from App.errors import register_error_handlers
@@ -40,6 +40,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     import App.auth.routes.log_out
     import App.auth.routes.register
     import App.auth.routes.login
+    import App.auth.routes.refresh_access_token
     
     
 
@@ -60,14 +61,21 @@ def create_app(config: Optional[dict] = None) -> Flask:
 
     @app.before_request
     def load_current_user():
-        
-        verify_jwt_in_request(optional=True)
-        user_id = get_jwt_identity()
+    # 1. Bypass JWT check on the refresh route (let @jwt_required(refresh=True) handle it)
+       if request.endpoint == "auth.refresh":
+        g.user = None
+        return
 
-        if user_id:
+    # 2. Safely verify standard Access Tokens for all other endpoints
+       try:
+         verify_jwt_in_request(optional=True)
+         user_id = get_jwt_identity()
+         if user_id:
             g.user = db.session.get(User, user_id)
-        else:
+         else:
             g.user = None
+       except Exception:
+        g.user = None
 
     @app.after_request
     def after(response):
