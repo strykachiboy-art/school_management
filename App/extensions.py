@@ -32,3 +32,6 @@ limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "5
 def check_if_token_revoked(jwt_header, jwt_payload):
     jti = jwt_payload["jti"]
     return redis_client.get(f"blocklist:{jti}") is not None
+
+# docker start redis-dev
+# pytest -q
