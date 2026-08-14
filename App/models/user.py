@@ -9,3 +9,7 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(50), nullable=False, default="student")
+    
+    password_reset_token = db.relationship("PasswordResetToken", 
+                                           back_populates = "user", 
+                                           cascade = "all, delete-orphan")

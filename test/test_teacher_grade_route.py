@@ -3,6 +3,8 @@
 import pytest
 from App.extensions import db
 
+JSON_HEADERS = {"Accept": "application/json"}
+
 
 def test_get_student_grade_success(client, teacher_headers, student_in_teacher_classroom, exam):
     """Teacher can view the grade of a student in their own classroom."""

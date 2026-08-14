@@ -2,6 +2,7 @@
 
 from App.models.classroom import Classroom
 
+JSON_HEADERS = {"Accept": "application/json"}
 
 def test_create_classroom_success(client, admin_headers):
     payload = {"name": "Room 101", "capacity": 25, "location": "Building A"}

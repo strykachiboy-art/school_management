@@ -1,5 +1,8 @@
 # test/test_result.py
 
+JSON_HEADERS = {"Accept": "application/json"}
+
+
 def test_create_result_success(client, admin_headers, student, exam):
     payload = {
         "student_id": student.id,

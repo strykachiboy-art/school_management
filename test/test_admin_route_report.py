@@ -4,6 +4,7 @@ from App.models.teacher import Teacher
 from App.models.subject import Subject
 from App.models.classroom import Classroom
 
+JSON_HEADERS = {"Accept": "application/json"}
 
 def test_get_admin_report_counts(client, admin_headers, teacher, student, subject, classroom):
     response = client.get("/admin/report", headers=admin_headers)

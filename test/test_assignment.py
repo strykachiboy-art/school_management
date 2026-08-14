@@ -2,6 +2,7 @@
 
 import pytest
 
+JSON_HEADERS = {"Accept": "application/json"}
 
 # ============================== Teacher assignment ==============================
 

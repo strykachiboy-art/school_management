@@ -5,6 +5,7 @@ from App.extensions import db
 from App.models.result import Result
 from App.services.teacher_grade_service import get_student_grade_for_teachers
 
+JSON_HEADERS = {"Accept": "application/json"}
 
 def test_get_student_grade_for_teachers_success(app, teacher, classroom, student, exam):
     with app.app_context():

@@ -4,6 +4,7 @@ from App.extensions import db
 from App.models.user import User
 from App.utils.password import verify_password
 
+JSON_HEADERS = {"Accept": "application/json"}
 
 def test_change_password_success(client, user_with_password):
     headers = user_with_password["headers"]

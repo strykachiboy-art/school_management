@@ -6,6 +6,9 @@ from App.auth.request.profile import ProfileUpdateRequest
 from App.extensions import db
 from App.models.user import User
 
+JSON_HEADERS = {"Accept": "application/json"}
+
+
 def test_update_profile_success(app, base_user):
     """Test successful update of both username and email."""
     data = ProfileUpdateRequest(username="new_username", email="new@example.com")

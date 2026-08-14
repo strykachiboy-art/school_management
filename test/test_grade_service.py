@@ -1,4 +1,7 @@
 import pytest
+
+JSON_HEADERS = {"Accept": "application/json"}
+
 from App.services.grade_service import (
     calculate_total,
     calculate_average,

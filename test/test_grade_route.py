@@ -2,6 +2,8 @@ import pytest
 from App.extensions import db
 from App.models.result import Result
 
+JSON_HEADERS = {"Accept": "application/json"}
+
 
 @pytest.fixture
 def results_for_student(student, exam, subject, classroom):
