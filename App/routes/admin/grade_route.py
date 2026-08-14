@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, abort
+from flask import jsonify, abort
 from App.routes.admin.admin import admin_bp
 from App.models.result import Result
 from App.services.grade_service import calculate_student_grade

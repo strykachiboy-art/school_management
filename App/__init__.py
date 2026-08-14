@@ -22,7 +22,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     cors.init_app(app)
     jwt.init_app(app)
     limiter.init_app(app)
-
+    
     from App.routes.admin.subject_route import subject_bp
     from App.routes.admin.classroom_route import classroom_bp
     from App.routes.admin.assignment_route import ass_bp
@@ -34,9 +34,10 @@ def create_app(config: Optional[dict] = None) -> Flask:
     from App.routes.teacher.grade_route import teacher_grade_bp
     from App.routes.admin import admin_reports_route
     from App.auth.auth import auth_bp
-    from App.auth.routes.change_password import change_password_route 
-    import App.auth.routes.forgot_password 
+    from App.auth.routes.change_password import change_password_route
+    import App.auth.routes.forgot_password
     import App.routes.admin.grade_route
+    import App.auth.routes.log_out
     
 
     app.register_blueprint(subject_bp, url_prefix="/subjects")
