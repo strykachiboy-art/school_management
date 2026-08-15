@@ -8,3 +8,4 @@ from App.models.association import student_subjects, teacher_subjects, classroom
 from App.models.exam import Exam
 from App.models.result import Result
 from App.models.password_reset_token import PasswordResetToken
+from App.models.academic_session import AcademicSession
