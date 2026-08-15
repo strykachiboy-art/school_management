@@ -69,9 +69,10 @@ class AcademicSessionUpdateRequest(BaseModel):
 class AcademicSessionResponse(AcademicSessionBase):
     """Schema for serializing academic session database models into API responses."""
     id: int
+    is_active: bool
     created_at: datetime
     updated_at: datetime
 
     model_config = ConfigDict(
-        from_attributes=True  # Enables ORM model validation (e.g., AcademicSession.model_validate(session))
+        from_attributes=True
     )

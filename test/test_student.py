@@ -63,3 +63,30 @@ def test_delete_student_success(client, admin_headers, student):
 def test_delete_student_not_found(client, admin_headers):
     response = client.delete("/students/99999", headers=admin_headers)
     assert response.status_code == 404
+    
+    
+def test_add_student_to_classroom_success(client, admin_headers, student, classroom):
+    response = client.patch(f"/students/{student.id}/classroom/{classroom.id}", headers=admin_headers)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["classroom_id"] == classroom.id
+
+
+def test_add_student_to_classroom_student_not_found(client, admin_headers, classroom):
+    response = client.patch(f"/students/99999/classroom/{classroom.id}", headers=admin_headers)
+    assert response.status_code == 404
+
+
+def test_delete_student_from_classroom_success(client, admin_headers, student, classroom):
+    # First assign the student to a classroom so removal has something to undo
+    client.patch(f"/students/{student.id}/classroom/{classroom.id}", headers=admin_headers)
+
+    response = client.delete(f"/students/{student.id}/classroom", headers=admin_headers)
+    assert response.status_code == 200
+    data = response.get_json()
+    assert data["classroom_id"] is None
+
+
+def test_delete_student_from_classroom_not_found(client, admin_headers):
+    response = client.delete("/students/99999/classroom", headers=admin_headers)
+    assert response.status_code == 404

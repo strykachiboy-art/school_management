@@ -13,6 +13,8 @@ from App.services.student_services import (
     filter_classroom_id,
     filter_admission_number,
     paginate_students,
+    add_student_to_classroom,
+    delete_student_from_classroom
 )
 
 student_bp = Blueprint("student", __name__, url_prefix="/students")
@@ -100,3 +102,30 @@ def delete_student(student_id):
         abort(404, description="Student not found")
 
     return jsonify({"message": "Student deleted successfully"}), 200
+
+
+
+# ====================================== add_student_to_classroom ===============================================
+
+@student_bp.route("/<int:student_id>/classroom/<int:classroom_id>", methods=["PATCH"])
+@role_required("admin")
+def add_to_classroom(student_id, classroom_id):
+    student = add_student_to_classroom(student_id, classroom_id)
+    if student is None:
+        abort(404, description="Student not found")
+
+    serialized_student = StudentResponse.model_validate(student).model_dump()
+    return jsonify(serialized_student), 200
+
+
+# ====================================== remove_student_from_classroom ===============================================
+
+@student_bp.route("/<int:student_id>/classroom", methods=["DELETE"])
+@role_required("admin")
+def remove_from_classroom(student_id):
+    student = delete_student_from_classroom(student_id)
+    if student is None:
+        abort(404, description="Student not found")
+
+    serialized_student = StudentResponse.model_validate(student).model_dump()
+    return jsonify(serialized_student), 200
