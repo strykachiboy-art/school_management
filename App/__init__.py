@@ -31,16 +31,17 @@ def create_app(config: Optional[dict] = None) -> Flask:
     from App.routes.admin.exam_route import exam_bp
     from App.routes.admin.result_route import result_bp
     from App.routes.admin.admin import admin_bp
-    from App.routes.teacher.grade_route import teacher_grade_bp
+    from App.routes.teacher.teacher_grade_route import teacher_grade_bp
     from App.routes.admin import admin_reports_route
     from App.auth.auth import auth_bp
     from App.auth.routes.change_password import change_password_route
     import App.auth.routes.forgot_password
-    import App.routes.admin.grade_route
+    import App.routes.admin.admin_grade_route
     import App.auth.routes.log_out
     import App.auth.routes.register
     import App.auth.routes.login
     import App.auth.routes.refresh_access_token
+    from App.routes.student.student_grade_route import student_grade_bp
     
     
 
@@ -54,6 +55,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     app.register_blueprint(admin_bp, url_prefix="/admin")
     app.register_blueprint(teacher_grade_bp, url_prefix="/teacher")
     app.register_blueprint(auth_bp, url_prefix="/auth")
+    app.register_blueprint(student_grade_bp, url_prefix="/student")
     
     
     register_error_handlers(app)

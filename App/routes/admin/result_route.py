@@ -44,7 +44,7 @@ def get_all_results_route():
 
 # ============================ Get Result by ID Route ============================
 @result_bp.route("/<int:result_id>", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required("admin", "teacher", "student")
 def get_result_route(result_id):
     result = get_result_by_id(result_id)
     
@@ -69,7 +69,7 @@ def delete_result_route(result_id):
 
 # ============================ Search Result Route ============================
 @result_bp.route("/search", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required("admin", "teacher", "student")
 def search_result_route():
     try:
         student_id = request.args.get("student_id", type=int)

@@ -24,14 +24,13 @@ student_bp = Blueprint("student", __name__, url_prefix="/students")
 @role_required("admin")
 @validate_request(StudentCreateRequest)
 def create_student(data: StudentCreateRequest):
-    # Pass the validated Pydantic model data to your service layer
     student = create_students(data)
     
     serialized_student = StudentResponse.model_validate(student).model_dump()
     return jsonify(serialized_student), 201
 
 
-# ======================================get_all_student ===============================================
+# ====================================== get_all_student ===============================================
 
 @student_bp.route("", methods=["GET"])
 @role_required("admin", "teacher")
@@ -64,7 +63,7 @@ def get_all_student():
 # ====================================== get_student ===============================================
 
 @student_bp.route("/<int:student_id>", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required("admin", "teacher", "student")
 def get_student(student_id):
     student = get_student_by_id(student_id)
     if student is None:
@@ -73,6 +72,8 @@ def get_student(student_id):
     serialized_student = StudentResponse.model_validate(student).model_dump()
     return jsonify(serialized_student), 200
 
+
+# ====================================== update_student ===============================================
 
 @student_bp.route("/<int:student_id>/edit", methods=["PUT", "PATCH"])
 @role_required("admin")
@@ -90,9 +91,8 @@ def update_student(data: StudentCreateRequest, student_id):
 
 # ====================================== delete_student ===============================================
 
-
 @student_bp.route("/<int:student_id>", methods=["DELETE"])
-@role_required('admin')
+@role_required("admin")
 def delete_student(student_id):
     deleted = delete_student_service(student_id)
 

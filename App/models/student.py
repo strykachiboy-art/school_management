@@ -24,6 +24,6 @@ class Student(db.Model):
     updated_at = db.Column(db.DateTime, nullable=False, default=_utcnow, onupdate=_utcnow)
     
     subjects = db.relationship("Subject", back_populates = "students", secondary = student_subjects)
-    user = db.relationship("User", backref="student_profile")
+    user = db.relationship("User", backref=db.backref("student_profile", uselist = False))
     classroom = db.relationship("Classroom", back_populates="students")
     results = db.relationship("Result", back_populates="student")

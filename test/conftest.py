@@ -1,19 +1,19 @@
-import pytest
 from datetime import date, time
+import pytest
 
 from App import create_app
 from App.extensions import db, limiter, redis_client
-from App.models.exam import Exam
-from App.models.subject import Subject
 from App.models.classroom import Classroom
-from App.models.user import User
-from App.models.teacher import Teacher
-from App.models.student import Student
+from App.models.exam import Exam
 from App.models.result import Result
+from App.models.student import Student
+from App.models.subject import Subject
+from App.models.teacher import Teacher
+from App.models.user import User
 
 
 # ----------------------------------------------------------------------
-# 1. Global Setup & Teardown Fixtures (Autouse & App context)
+# 1. Global Setup & Teardown Fixtures
 # ----------------------------------------------------------------------
 
 @pytest.fixture(scope="function")
@@ -24,8 +24,7 @@ def app():
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
         "JWT_SECRET_KEY": "test-secret-key-that-is-at-least-32-bytes-long",
         "RATELIMIT_ENABLED": True,
-        "RATELIMIT_STORAGE_URI": "memory://", 
-        
+        "RATELIMIT_STORAGE_URI": "memory://",
         "WTF_CSRF_ENABLED": False,
         "ADMIN_ACCESS_ENABLED": True,
     }
@@ -52,10 +51,14 @@ def auto_clear_limiter(app):
 
 @pytest.fixture(autouse=True)
 def auto_clear_redis():
-    """Cleans up Redis whitelist keys after each test."""
+    """Cleans up Redis whitelist keys after each test safely."""
     yield
-    for key in redis_client.keys("refresh_whitelist:*"):
-        redis_client.delete(key)
+    try:
+        keys = redis_client.keys("refresh_whitelist:*")
+        if keys:
+            redis_client.delete(*keys)
+    except Exception:
+        pass
 
 
 # ----------------------------------------------------------------------
@@ -75,21 +78,21 @@ def json_client(client):
             self.c = c
             self.headers = {"Accept": "application/json"}
 
-        def post(self, url, **kwargs):
+        def _kwargs(self, kwargs):
             kwargs["headers"] = {**self.headers, **kwargs.get("headers", {})}
-            return self.c.post(url, **kwargs)
+            return kwargs
+
+        def post(self, url, **kwargs):
+            return self.c.post(url, **self._kwargs(kwargs))
 
         def patch(self, url, **kwargs):
-            kwargs["headers"] = {**self.headers, **kwargs.get("headers", {})}
-            return self.c.patch(url, **kwargs)
+            return self.c.patch(url, **self._kwargs(kwargs))
 
         def get(self, url, **kwargs):
-            kwargs["headers"] = {**self.headers, **kwargs.get("headers", {})}
-            return self.c.get(url, **kwargs)
+            return self.c.get(url, **self._kwargs(kwargs))
 
         def delete(self, url, **kwargs):
-            kwargs["headers"] = {**self.headers, **kwargs.get("headers", {})}
-            return self.c.delete(url, **kwargs)
+            return self.c.delete(url, **self._kwargs(kwargs))
 
     return JSONClient(client)
 
@@ -100,7 +103,6 @@ def json_client(client):
 
 @pytest.fixture
 def make_user(app):
-    """Factory: creates a basic User profile."""
     def _make(suffix="1", role="student"):
         with app.app_context():
             user = User(
@@ -112,13 +114,13 @@ def make_user(app):
             db.session.add(user)
             db.session.commit()
             db.session.refresh(user)
+            db.session.expunge(user)
             return user
     return _make
 
 
 @pytest.fixture
 def make_teacher(app):
-    """Factory: creates a linked User + Teacher model pair correctly."""
     def _make(suffix="1"):
         with app.app_context():
             user = User(
@@ -129,19 +131,18 @@ def make_teacher(app):
             )
             db.session.add(user)
             db.session.commit()
-            db.session.refresh(user)
 
             teacher = Teacher(user_id=user.id, full_name=f"Teacher {suffix}")
             db.session.add(teacher)
             db.session.commit()
             db.session.refresh(teacher)
+            db.session.expunge(teacher)
             return teacher
     return _make
 
 
 @pytest.fixture
 def make_student(app):
-    """Factory: creates a linked User + Student model pair correctly."""
     def _make(suffix="1"):
         with app.app_context():
             user = User(
@@ -152,32 +153,31 @@ def make_student(app):
             )
             db.session.add(user)
             db.session.commit()
-            db.session.refresh(user)
 
             student = Student(user_id=user.id, full_name=f"Student {suffix}")
             db.session.add(student)
             db.session.commit()
             db.session.refresh(student)
+            db.session.expunge(student)
             return student
     return _make
 
 
 @pytest.fixture
 def make_classroom(app):
-    """Factory: creates a Classroom."""
     def _make(suffix="1"):
         with app.app_context():
             classroom = Classroom(name=f"Room {suffix}", capacity=30)
             db.session.add(classroom)
             db.session.commit()
             db.session.refresh(classroom)
+            db.session.expunge(classroom)
             return classroom
     return _make
 
 
 @pytest.fixture
 def make_exam(app, subject, classroom):
-    """Factory: creates an Exam."""
     def _make(suffix="1"):
         with app.app_context():
             exam = Exam(
@@ -193,13 +193,13 @@ def make_exam(app, subject, classroom):
             db.session.add(exam)
             db.session.commit()
             db.session.refresh(exam)
+            db.session.expunge(exam)
             return exam
     return _make
 
 
 @pytest.fixture
 def make_result(app, student, exam):
-    """Factory: creates a Result record."""
     def _make(student_obj=student, exam_obj=exam, marks=85.5):
         with app.app_context():
             result = Result(
@@ -210,12 +210,13 @@ def make_result(app, student, exam):
             db.session.add(result)
             db.session.commit()
             db.session.refresh(result)
+            db.session.expunge(result)
             return result
     return _make
 
 
 # ----------------------------------------------------------------------
-# 4. Standard Model Fixtures (Built using factories/models)
+# 4. Standard Model Fixtures
 # ----------------------------------------------------------------------
 
 @pytest.fixture
@@ -250,7 +251,8 @@ def subject(app):
         db.session.add(subj)
         db.session.commit()
         db.session.refresh(subj)
-        yield subj
+        db.session.expunge(subj)
+        return subj
 
 
 @pytest.fixture
@@ -260,7 +262,8 @@ def classroom(app):
         db.session.add(cls)
         db.session.commit()
         db.session.refresh(cls)
-        yield cls
+        db.session.expunge(cls)
+        return cls
 
 
 @pytest.fixture
@@ -275,13 +278,15 @@ def result(make_result):
 
 @pytest.fixture
 def student_in_teacher_classroom(app, teacher, classroom, student):
-    classroom.teacher_id = teacher.id
-    student.classroom_id = classroom.id
-    db.session.add(classroom)
-    db.session.add(student)
-    db.session.commit()
-    db.session.refresh(student)
-    return student
+    with app.app_context():
+        c = db.session.merge(classroom)
+        s = db.session.merge(student)
+        c.teacher_id = teacher.id
+        s.classroom_id = c.id
+        db.session.commit()
+        db.session.refresh(s)
+        db.session.expunge(s)
+        return s
 
 
 # ----------------------------------------------------------------------
@@ -301,7 +306,6 @@ def admin_headers(app):
         )
         db.session.add(admin)
         db.session.commit()
-        db.session.refresh(admin)
 
         token = create_access_token(
             identity=str(admin.id),
@@ -331,6 +335,22 @@ def teacher_headers(app, teacher):
 
 
 @pytest.fixture(scope="function")
+def student_headers(app, student):
+    from flask_jwt_extended import create_access_token
+
+    with app.app_context():
+        token = create_access_token(
+            identity=str(student.user_id),
+            additional_claims={"role": "student"},
+        )
+
+    return {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+    }
+
+
+@pytest.fixture(scope="function")
 def user_with_password(app):
     from flask_jwt_extended import create_access_token
     from App.utils.password import hash_password
@@ -346,7 +366,6 @@ def user_with_password(app):
         )
         db.session.add(user)
         db.session.commit()
-        db.session.refresh(user)
 
         token = create_access_token(
             identity=str(user.id),

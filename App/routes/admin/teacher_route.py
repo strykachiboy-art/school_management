@@ -34,7 +34,7 @@ def create_teacher(data: TeacherCreateRequest):
 # ====================================== get_all_teacher ===============================================
 
 @teacher_bp.route("", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher", "student")
 def get_all_teacher():
     search = request.args.get("search", "", type=str)
     teacher_id = request.args.get("id", None, type=int)
@@ -66,9 +66,8 @@ def get_all_teacher():
 
 # ====================================== get_teacher ===============================================
 
-
 @teacher_bp.route("/<int:teacher_id>", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher", "student")
 def get_teacher(teacher_id):
     teacher = get_teacher_by_id(teacher_id)
     if teacher is None:
@@ -79,7 +78,6 @@ def get_teacher(teacher_id):
 
 
 # ====================================== update_teacher ===============================================
-
 
 @teacher_bp.route("/<int:teacher_id>/edit", methods=["PUT", "PATCH"])
 @role_required("admin")
@@ -97,7 +95,6 @@ def update_teacher(data: TeacherCreateRequest, teacher_id):
 
 # ====================================== delete_teacher ===============================================
 
-
 @teacher_bp.route("/<int:teacher_id>", methods=["DELETE"])
 @role_required("admin")
 def delete_teacher(teacher_id):
@@ -112,7 +109,7 @@ def delete_teacher(teacher_id):
 # ====================================== get_classroom_details ===============================================
 
 @teacher_bp.route("/classrooms/<int:classroom_id>", methods=["GET"])
-@role_required("admin")
+@role_required("admin", "teacher", "student")
 def get_classroom_details(classroom_id):
     classroom = get_classroom(classroom_id)
     if classroom is None:

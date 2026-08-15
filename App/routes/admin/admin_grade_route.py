@@ -8,12 +8,12 @@ from App.decorators import role_required
 @role_required("admin")
 def get_student_grade(student_id):
     results = Result.query.filter_by(student_id=student_id).all()
-    
+
     if not results:
         abort(404, description="No results found for this student")
-        
+
     grade = calculate_student_grade(results)
-    
+
     return jsonify({
         "student_id": student_id,
         "grade": grade

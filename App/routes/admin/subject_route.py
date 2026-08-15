@@ -32,9 +32,8 @@ def create_subject_route(data: SubjectCreateRequest):
 
 # ====================================== get_subjects ===============================================
 
-
 @subject_bp.route("", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required("admin", "teacher", "student")
 def get_subjects():
     search = request.args.get("search", "", type=str)
 
@@ -55,12 +54,10 @@ def get_subjects():
     return jsonify(serialized_subjects), 200
 
 
-
 # ====================================== get_subject_detail ===============================================
 
-
 @subject_bp.route("/<int:subject_id>", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required("admin", "teacher", "student")
 def get_subject_detail(subject_id):
     subject = get_subject(subject_id)
     if subject is None:
@@ -69,6 +66,8 @@ def get_subject_detail(subject_id):
     serialized_subject = SubjectResponse.model_validate(subject).model_dump()
     return jsonify(serialized_subject), 200
 
+
+# ====================================== update_subject_route ===============================================
 
 @subject_bp.route("/<int:subject_id>/edit", methods=["PUT", "PATCH"])
 @role_required("admin")
@@ -85,7 +84,6 @@ def update_subject_route(data: SubjectCreateRequest, subject_id):
 
 
 # ====================================== delete_subject_route ===============================================
-
 
 @subject_bp.route("/<int:subject_id>", methods=["DELETE"])
 @role_required("admin")
