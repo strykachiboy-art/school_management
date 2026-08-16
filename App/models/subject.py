@@ -22,3 +22,4 @@ class Subject(db.Model):
     students = db.relationship("Student", secondary = student_subjects, back_populates = "subjects")
     teachers = db.relationship("Teacher", secondary = teacher_subjects, back_populates = "subjects")
     classrooms = db.relationship("Classroom", secondary = classroom_subjects, back_populates = "subjects")
+    exams = db.relationship("Exam", back_populates="subject")   # <-- add this

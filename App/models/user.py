@@ -13,3 +13,6 @@ class User(db.Model):
     password_reset_token = db.relationship("PasswordResetToken", 
                                            back_populates = "user", 
                                            cascade = "all, delete-orphan")
+    
+    student_profile = db.relationship("Student", back_populates="user", uselist=False)
+    teacher_profile = db.relationship("Teacher", back_populates="user", uselist=False)

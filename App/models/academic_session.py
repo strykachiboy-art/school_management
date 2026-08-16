@@ -22,3 +22,6 @@ class AcademicSession(db.Model):
         default=_utcnow, 
         onupdate=_utcnow
     )
+    
+    terms = db.relationship("Term", back_populates = "acacdemic_session", cascade = "all, delete-orphan")
+    exams = db.relationship("Exam", back_populates="session")

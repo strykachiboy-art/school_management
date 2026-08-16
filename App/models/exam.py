@@ -1,11 +1,8 @@
 from App.extensions import db
-from App.models.association import classroom_subjects
-
 from datetime import datetime, timezone
 
 
 def _utcnow():
-    """Return the current UTC time."""
     return datetime.now(timezone.utc)
 
 class Exam(db.Model):
@@ -15,6 +12,7 @@ class Exam(db.Model):
     description = db.Column(db.Text, nullable = True)
     subject_id = db.Column(db.Integer, db.ForeignKey("subjects.id"), nullable = False)
     classroom_id = db.Column(db.Integer, db.ForeignKey("classrooms.id"), nullable = False)
+    session_id = db.Column(db.Integer, db.ForeignKey("academic_sessions.id"), nullable=False)
     exam_date = db.Column(db.DateTime, nullable = False)
     start_time = db.Column(db.Time, nullable = False)
     duration_minutes = db.Column(db.Integer, nullable = False)
@@ -22,4 +20,9 @@ class Exam(db.Model):
     created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)
     
+
+
     results = db.relationship("Result", back_populates = "exam")
+    subject = db.relationship("Subject", back_populates="subject")  
+    classroom = db.relationship("Classroom", back_populates="classroom")  
+    session = db.relationship("AcademicSession", back_populates="exams")   

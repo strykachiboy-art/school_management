@@ -22,4 +22,5 @@ class Classroom(db.Model):
     
     subjects = db.relationship("Subject", back_populates = "classrooms", secondary = classroom_subjects)
     teacher = db.relationship("Teacher", back_populates="classrooms", uselist=False)
-    students = db.relationship("Student", back_populates="classroom", cascade="all, delete-orphan")
+    students = db.relationship("Student", back_populates="classroom")
+    exams = db.relationship("Exam", back_populates="classroom")
