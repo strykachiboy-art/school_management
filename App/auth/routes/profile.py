@@ -2,7 +2,7 @@ from flask import g, jsonify
 from flask_jwt_extended import jwt_required
 
 from App.auth.auth import auth_bp
-from App.auth.schemas.profile import ProfileSchema
+from App.schemas.profile import ProfileSchema
 from App.auth.request.profile import ProfileUpdateRequest
 from App.auth.services.profile import update_profile
 from App.utils.helpers import validate_request

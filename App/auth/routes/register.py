@@ -3,7 +3,7 @@ from flask import jsonify
 from App.auth.auth import auth_bp
 from App.auth.services.register import register_user
 from App.auth.request.register import RegisterRequest
-from App.auth.schemas.profile import ProfileSchema
+from App.schemas.profile import ProfileSchema
 from App.utils.helpers import validate_request
 from App.extensions import limiter
 
