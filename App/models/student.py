@@ -27,3 +27,4 @@ class Student(db.Model):
     user = db.relationship("User", back_populates="student_profile")
     classroom = db.relationship("Classroom", back_populates="students")
     results = db.relationship("Result", back_populates="student")
+    attendance_records = db.relationship("Attendance", back_populates="student", cascade = "all, delete-orphan")

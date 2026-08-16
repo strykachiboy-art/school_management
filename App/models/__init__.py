@@ -10,3 +10,4 @@ from App.models.result import Result
 from App.models.password_reset_token import PasswordResetToken
 from App.models.academic_session import AcademicSession
 from App.models.term import Term
+from App.models.attendance import Attendance

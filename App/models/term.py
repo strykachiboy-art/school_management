@@ -18,3 +18,4 @@ class Term(db.Model):
     updated_at = db.Column(db.DateTime, default = _utcnow, onupdate = _utcnow, nullable = False)
     
     academic_session = db.relationship("AcademicSession", back_populates="terms")
+    attendance_records = db.relationship("Attendance", back_populates="term")
