@@ -23,6 +23,8 @@ def create_app():
 # $env:FLASK_APP = "run.py"
 # flask shell
 # git commit -m "Your descriptive message here" 
+# flask db migrate -m "drop unused teacher.subject column"
+# flask db upgrade
 
 
 

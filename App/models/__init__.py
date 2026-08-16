@@ -9,3 +9,4 @@ from App.models.exam import Exam
 from App.models.result import Result
 from App.models.password_reset_token import PasswordResetToken
 from App.models.academic_session import AcademicSession
+from App.models.term import Term

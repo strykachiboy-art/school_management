@@ -16,11 +16,11 @@ class Teacher(db.Model):
     full_name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(255), nullable=True)
     phone = db.Column(db.String(20), nullable=True)
-    subject = db.Column(db.String(100), nullable=True)
     gender = db.Column(db.String(20), nullable=True)
     date_of_birth = db.Column(db.Date, nullable=True)
     created_at = db.Column(db.DateTime, default=_utcnow)
     updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow)
     
-    user = db.relationship("User", back_populates="student_profile")
+    user = db.relationship("User", back_populates="teacher_profile")
     classrooms = db.relationship("Classroom", back_populates="teacher")
+    subjects = db.relationship("Subject", back_populates="teachers", secondary=teacher_subjects)
