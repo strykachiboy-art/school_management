@@ -43,6 +43,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     import App.auth.routes.refresh_access_token
     from App.routes.student.student_grade_route import student_grade_bp
     from App.routes.admin.academic_session import academic_session_bp
+    from App.routes.admin.term import term_bp
     
     
 
@@ -58,6 +59,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     app.register_blueprint(auth_bp, url_prefix="/auth")
     app.register_blueprint(student_grade_bp, url_prefix="/student")
     app.register_blueprint(academic_session_bp, url_prefix="/academic-sessions")
+    app.register_blueprint(term_bp, url_prefix = "/terms")
     
     register_error_handlers(app)
     
