@@ -9,6 +9,7 @@ class ExamBase(BaseModel):
     description: Optional[str] = None
     subject_id: int
     classroom_id: int
+    session_id: int
     exam_date: date
     start_time: time
     duration_minutes: Optional[int] = None

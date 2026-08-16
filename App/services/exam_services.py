@@ -13,6 +13,7 @@ def create_exam(data):
         description=data.description,
         subject_id=data.subject_id,
         classroom_id=data.classroom_id,
+        session_id=data.session_id,
         exam_date=data.exam_date,
         start_time=data.start_time,
         duration_minutes=data.duration_minutes,
@@ -50,6 +51,7 @@ def update_exam(exam_id, form):
     exam.description = form.description
     exam.subject_id = form.subject_id
     exam.classroom_id = form.classroom_id
+    exam.session_id = form.session_id
     exam.exam_date = form.exam_date
     exam.start_time = form.start_time
     exam.duration_minutes = form.duration_minutes

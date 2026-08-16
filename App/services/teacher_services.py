@@ -21,7 +21,6 @@ def create_teachers(form):
         full_name=form.full_name,
         email=form.email,
         phone=form.phone,
-        subject=form.subject,
     )
 
     try:
@@ -52,7 +51,6 @@ def update_teachers(teacher_id, form):
     teacher.full_name = form.full_name or teacher.full_name
     teacher.email = form.email or teacher.email
     teacher.phone = form.phone or teacher.phone
-    teacher.subject = form.subject or teacher.subject
 
     if teacher.user is not None:
         teacher.user.email = form.email or teacher.user.email
