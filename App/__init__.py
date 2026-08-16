@@ -44,6 +44,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     from App.routes.student.student_grade_route import student_grade_bp
     from App.routes.admin.academic_session import academic_session_bp
     from App.routes.admin.term import term_bp
+    from App.routes.admin.attendance import attendance_bp
     
     
 
@@ -60,6 +61,8 @@ def create_app(config: Optional[dict] = None) -> Flask:
     app.register_blueprint(student_grade_bp, url_prefix="/student")
     app.register_blueprint(academic_session_bp, url_prefix="/academic-sessions")
     app.register_blueprint(term_bp, url_prefix = "/terms")
+    app.register_blueprint(attendance_bp, url_prefix = "/attendances")
+    
     
     register_error_handlers(app)
     

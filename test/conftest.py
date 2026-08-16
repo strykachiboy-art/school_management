@@ -2,7 +2,7 @@ from datetime import date, time
 import pytest
 
 from App import create_app
-from App.extensions import db, limiter, redis_client
+from App.extensions import db as _db, limiter, redis_client
 from App.models.academic_session import AcademicSession
 from App.models.classroom import Classroom
 from App.models.exam import Exam
@@ -11,6 +11,9 @@ from App.models.student import Student
 from App.models.subject import Subject
 from App.models.teacher import Teacher
 from App.models.user import User
+from App.enums.attendance import AttendanceStatus
+from App.models.attendance import Attendance
+from App.models.term import Term 
 
 
 # ----------------------------------------------------------------------
@@ -32,10 +35,22 @@ def app():
     app = create_app(config=test_config)
 
     with app.app_context():
-        db.create_all()
+        _db.create_all()
         yield app
-        db.session.remove()
-        db.drop_all()
+        _db.session.remove()
+        _db.drop_all()
+
+
+@pytest.fixture(scope="function")
+def db(app):
+    """Provides the SQLAlchemy db instance for direct test manipulations."""
+    return _db
+
+
+@pytest.fixture(scope="function")
+def db_session(app, db):
+    """Provides convenient access to db.session."""
+    return db.session
 
 
 @pytest.fixture(autouse=True)
@@ -102,6 +117,53 @@ def json_client(client):
 # 3. Model Factories
 # ----------------------------------------------------------------------
 
+
+# ----------------------------------------------------------------------
+# Attendance & Term Fixtures
+# ----------------------------------------------------------------------
+
+@pytest.fixture
+def term(app, academic_session):
+    """Creates a default Term record linked to the AcademicSession fixture."""
+    with app.app_context():
+        t = Term(
+            name="First Term",
+            academic_session_id=academic_session.id,
+            start_date=date(2026, 9, 1),
+            end_date=date(2026, 12, 15),
+        )
+        _db.session.add(t)
+        _db.session.commit()
+        _db.session.refresh(t)
+        _db.session.expunge(t)
+        return t
+
+
+@pytest.fixture
+def make_attendance(app, student, term):
+    """Factory fixture for creating attendance records."""
+    def _make(student_obj=student, term_obj=term, date_val=date(2026, 5, 10), status=AttendanceStatus.PRESENT):
+        with app.app_context():
+            att = Attendance(
+                student_id=student_obj.id,
+                term_id=term_obj.id,
+                date=date_val,
+                status=status,
+            )
+            _db.session.add(att)
+            _db.session.commit()
+            _db.session.refresh(att)
+            _db.session.expunge(att)
+            return att
+    return _make
+
+
+@pytest.fixture
+def attendance_record(make_attendance):
+    """Standard attendance record fixture for tests."""
+    return make_attendance()
+
+
 @pytest.fixture
 def make_user(app):
     def _make(suffix="1", role="student"):
@@ -112,10 +174,10 @@ def make_user(app):
                 password="hashed-placeholder",
                 role=role,
             )
-            db.session.add(user)
-            db.session.commit()
-            db.session.refresh(user)
-            db.session.expunge(user)
+            _db.session.add(user)
+            _db.session.commit()
+            _db.session.refresh(user)
+            _db.session.expunge(user)
             return user
     return _make
 
@@ -130,14 +192,14 @@ def make_teacher(app):
                 password="hashed-placeholder",
                 role="teacher",
             )
-            db.session.add(user)
-            db.session.commit()
+            _db.session.add(user)
+            _db.session.commit()
 
             teacher = Teacher(user_id=user.id, full_name=f"Teacher {suffix}")
-            db.session.add(teacher)
-            db.session.commit()
-            db.session.refresh(teacher)
-            db.session.expunge(teacher)
+            _db.session.add(teacher)
+            _db.session.commit()
+            _db.session.refresh(teacher)
+            _db.session.expunge(teacher)
             return teacher
     return _make
 
@@ -152,14 +214,14 @@ def make_student(app):
                 password="hashed-placeholder",
                 role="student",
             )
-            db.session.add(user)
-            db.session.commit()
+            _db.session.add(user)
+            _db.session.commit()
 
             student = Student(user_id=user.id, full_name=f"Student {suffix}")
-            db.session.add(student)
-            db.session.commit()
-            db.session.refresh(student)
-            db.session.expunge(student)
+            _db.session.add(student)
+            _db.session.commit()
+            _db.session.refresh(student)
+            _db.session.expunge(student)
             return student
     return _make
 
@@ -169,10 +231,10 @@ def make_classroom(app):
     def _make(suffix="1"):
         with app.app_context():
             classroom = Classroom(name=f"Room {suffix}", capacity=30)
-            db.session.add(classroom)
-            db.session.commit()
-            db.session.refresh(classroom)
-            db.session.expunge(classroom)
+            _db.session.add(classroom)
+            _db.session.commit()
+            _db.session.refresh(classroom)
+            _db.session.expunge(classroom)
             return classroom
     return _make
 
@@ -192,10 +254,10 @@ def make_exam(app, subject, classroom, academic_session):
                 duration_minutes=90,
                 total_marks=100,
             )
-            db.session.add(exam)
-            db.session.commit()
-            db.session.refresh(exam)
-            db.session.expunge(exam)
+            _db.session.add(exam)
+            _db.session.commit()
+            _db.session.refresh(exam)
+            _db.session.expunge(exam)
             return exam
     return _make
 
@@ -209,10 +271,10 @@ def make_result(app, student, exam):
                 exam_id=exam_obj.id,
                 marks_obtained=marks,
             )
-            db.session.add(result)
-            db.session.commit()
-            db.session.refresh(result)
-            db.session.expunge(result)
+            _db.session.add(result)
+            _db.session.commit()
+            _db.session.refresh(result)
+            _db.session.expunge(result)
             return result
     return _make
 
@@ -250,10 +312,10 @@ def student2(make_student):
 def subject(app):
     with app.app_context():
         subj = Subject(name="Mathematics", code="MATH101")
-        db.session.add(subj)
-        db.session.commit()
-        db.session.refresh(subj)
-        db.session.expunge(subj)
+        _db.session.add(subj)
+        _db.session.commit()
+        _db.session.refresh(subj)
+        _db.session.expunge(subj)
         return subj
 
 
@@ -261,10 +323,10 @@ def subject(app):
 def classroom(app):
     with app.app_context():
         cls = Classroom(name="Room A", capacity=30)
-        db.session.add(cls)
-        db.session.commit()
-        db.session.refresh(cls)
-        db.session.expunge(cls)
+        _db.session.add(cls)
+        _db.session.commit()
+        _db.session.refresh(cls)
+        _db.session.expunge(cls)
         return cls
 
 
@@ -272,10 +334,10 @@ def classroom(app):
 def academic_session(app):
     with app.app_context():
         sess = AcademicSession(name="2026/2027", end_date=date(2027, 6, 1))
-        db.session.add(sess)
-        db.session.commit()
-        db.session.refresh(sess)
-        db.session.expunge(sess)
+        _db.session.add(sess)
+        _db.session.commit()
+        _db.session.refresh(sess)
+        _db.session.expunge(sess)
         return sess
 
 
@@ -292,13 +354,13 @@ def result(make_result):
 @pytest.fixture
 def student_in_teacher_classroom(app, teacher, classroom, student):
     with app.app_context():
-        c = db.session.merge(classroom)
-        s = db.session.merge(student)
+        c = _db.session.merge(classroom)
+        s = _db.session.merge(student)
         c.teacher_id = teacher.id
         s.classroom_id = c.id
-        db.session.commit()
-        db.session.refresh(s)
-        db.session.expunge(s)
+        _db.session.commit()
+        _db.session.refresh(s)
+        _db.session.expunge(s)
         return s
 
 
@@ -317,8 +379,8 @@ def admin_headers(app):
             password="hashed-placeholder",
             role="admin",
         )
-        db.session.add(admin)
-        db.session.commit()
+        _db.session.add(admin)
+        _db.session.commit()
 
         token = create_access_token(
             identity=str(admin.id),
@@ -377,8 +439,8 @@ def user_with_password(app):
             password=hash_password(plain_password),
             role="student",
         )
-        db.session.add(user)
-        db.session.commit()
+        _db.session.add(user)
+        _db.session.commit()
 
         token = create_access_token(
             identity=str(user.id),

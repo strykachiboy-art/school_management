@@ -1,7 +1,21 @@
+from __future__ import annotations
 from datetime import date, datetime
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, ConfigDict, field_validator
 from App.enums.attendance import AttendanceStatus
+
+
+# Schema for an individual student's record in the bulk payload
+class StudentAttendanceRecord(BaseModel):
+    student_id: int
+    status: AttendanceStatus
+
+
+# Schema for the bulk classroom attendance request
+class MarkClassroomAttendanceRequest(BaseModel):
+    term_id: int
+    date: date
+    attendance_data: List[StudentAttendanceRecord]
 
 
 # Base schema containing shared attendance fields

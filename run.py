@@ -27,7 +27,7 @@ def create_app():
 # flask db migrate -m "drop unused teacher.subject column"
 # flask db upgrade
 
-
+# pytest test/test_attendance_route.py -v
 
 # // Frontend JavaScript
 # async function updateProfile(data) {
