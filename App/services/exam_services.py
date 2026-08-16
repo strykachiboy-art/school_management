@@ -1,4 +1,4 @@
-from flask import abort, request
+from flask import abort
 from App.models.exam import Exam
 from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
@@ -73,10 +73,7 @@ def delete_exam(exam_id):
 
 
 # =========================== Search and filter ============================
-def search_exams(search=None):
-    subject_id = request.args.get("subject_id", None, type=int)
-    classroom_id = request.args.get("classroom_id", None, type=int)
-
+def search_exams(search=None, subject_id=None, classroom_id=None):
     statement = db.select(Exam)
 
     if search:
@@ -98,10 +95,7 @@ def search_exams(search=None):
 
 
 # ========================= paginate_exams ============================
-def paginate_exams():
-    page = request.args.get("page", 1, type=int)
-    per_page = request.args.get("per_page", 20, type=int)
-
+def paginate_exams(page=1, per_page=20):
     statement = db.select(Exam).order_by(Exam.exam_date)
 
     return db.paginate(statement,

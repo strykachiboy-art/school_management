@@ -41,12 +41,13 @@ def test_get_all_exams_empty(client, admin_headers):
 
 # ============================== CREATE exam ==============================
 
-def test_create_exam_success(client, admin_headers, subject, classroom):
+def test_create_exam_success(client, admin_headers, subject, classroom, academic_session):
     payload = {
         "title": "Final Exam",
         "description": "Comprehensive final",
         "subject_id": subject.id,
         "classroom_id": classroom.id,
+        "session_id": academic_session.id,
         "exam_date": "2026-12-15",
         "start_time": "10:00:00",
         "duration_minutes": 120,
@@ -94,12 +95,13 @@ def test_create_exam_invalid_date_format(client, admin_headers, subject, classro
 
 # ============================== UPDATE exam ==============================
 
-def test_update_exam_success(client, admin_headers, exam, subject, classroom):
+def test_update_exam_success(client, admin_headers, exam, subject, classroom, academic_session):
     payload = {
         "title": "Updated Midterm",
         "description": "Rescheduled",
         "subject_id": subject.id,
         "classroom_id": classroom.id,
+        "session_id": academic_session.id,
         "exam_date": "2026-12-20",
         "start_time": "11:00:00",
         "duration_minutes": 90,
@@ -117,11 +119,12 @@ def test_update_exam_success(client, admin_headers, exam, subject, classroom):
     assert follow_up.get_json()["title"] == "Updated Midterm"
 
 
-def test_update_exam_not_found(client, admin_headers, subject, classroom):
+def test_update_exam_not_found(client, admin_headers, subject, classroom, academic_session):
     payload = {
         "title": "Ghost Exam",
         "subject_id": subject.id,
         "classroom_id": classroom.id,
+        "session_id": academic_session.id,
         "exam_date": "2026-12-20",
         "start_time": "11:00:00",
         "total_marks": 100,
@@ -131,11 +134,12 @@ def test_update_exam_not_found(client, admin_headers, subject, classroom):
     assert response.get_json()["error"] == "Exam not found"
 
 
-def test_update_exam_missing_required_field(client, admin_headers, exam, subject, classroom):
+def test_update_exam_missing_required_field(client, admin_headers, exam, subject, classroom, academic_session):
     payload = {
         "title": "Incomplete Update",
         "subject_id": subject.id,
         "classroom_id": classroom.id,
+        "session_id": academic_session.id,
         "exam_date": "2026-12-20",
         "start_time": "11:00:00",
     }
@@ -146,11 +150,12 @@ def test_update_exam_missing_required_field(client, admin_headers, exam, subject
     assert "total_marks" in data["error"]
 
 
-def test_update_exam_requires_auth(client, exam, subject, classroom):
+def test_update_exam_requires_auth(client, exam, subject, classroom, academic_session):
     payload = {
         "title": "No Auth Update",
         "subject_id": subject.id,
         "classroom_id": classroom.id,
+        "session_id": academic_session.id,
         "exam_date": "2026-12-20",
         "start_time": "11:00:00",
         "total_marks": 100,

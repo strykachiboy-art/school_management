@@ -16,6 +16,7 @@ def results_for_student(student, exam, subject, classroom):
         description="Second test exam",
         subject_id=subject.id,
         classroom_id=classroom.id,
+        session_id=exam.session_id,
         exam_date=date(2026, 12, 20),
         start_time=time(11, 0),
         duration_minutes=90,

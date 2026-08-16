@@ -3,6 +3,7 @@ import pytest
 
 from App import create_app
 from App.extensions import db, limiter, redis_client
+from App.models.academic_session import AcademicSession
 from App.models.classroom import Classroom
 from App.models.exam import Exam
 from App.models.result import Result
@@ -177,7 +178,7 @@ def make_classroom(app):
 
 
 @pytest.fixture
-def make_exam(app, subject, classroom):
+def make_exam(app, subject, classroom, academic_session):
     def _make(suffix="1"):
         with app.app_context():
             exam = Exam(
@@ -185,6 +186,7 @@ def make_exam(app, subject, classroom):
                 description="Test description",
                 subject_id=subject.id,
                 classroom_id=classroom.id,
+                session_id=academic_session.id,
                 exam_date=date(2026, 12, 1),
                 start_time=time(9, 0),
                 duration_minutes=90,
@@ -264,6 +266,17 @@ def classroom(app):
         db.session.refresh(cls)
         db.session.expunge(cls)
         return cls
+
+
+@pytest.fixture
+def academic_session(app):
+    with app.app_context():
+        sess = AcademicSession(name="2026/2027", end_date=date(2027, 6, 1))
+        db.session.add(sess)
+        db.session.commit()
+        db.session.refresh(sess)
+        db.session.expunge(sess)
+        return sess
 
 
 @pytest.fixture
