@@ -10,6 +10,7 @@ class Term(db.Model):
 
     id = db.Column(db.Integer, primary_key = True)
     name = db.Column(db.String(30), nullable = False)
+    start_date = db.Column(db.Date, nullable = False)
     end_date = db.Column(db.Date, nullable = False)
     is_current = db.Column(db.Boolean, default = False, nullable = False)
     academic_session_id = db.Column(db.Integer, db.ForeignKey("academic_sessions.id"), nullable = False)
