@@ -1,6 +1,6 @@
 from datetime import datetime
-from typing import Optional
-from pydantic import BaseModel, ConfigDict, field_validator, conlist
+from typing import Optional, Annotated
+from pydantic import BaseModel, ConfigDict, field_validator, conlist, Field
 
 
 # Base schema containing shared classroom fields
@@ -42,7 +42,7 @@ class ClassroomResponse(ClassroomBase):
 
 # Schema used for bulk-assigning students to a classroom
 class BulkAssignStudentsRequest(BaseModel):
-    student_ids: conlist(int, min_length=1)
+    student_ids: Annotated[list[int], Field(min_length=1)]
 
     @field_validator("student_ids")
     @classmethod
