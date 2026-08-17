@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, conlist
 
 
 # Base schema containing shared classroom fields
@@ -38,3 +38,14 @@ class ClassroomResponse(ClassroomBase):
     updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+# Schema used for bulk-assigning students to a classroom
+class BulkAssignStudentsRequest(BaseModel):
+    student_ids: conlist(int, min_length=1)
+
+    @field_validator("student_ids")
+    @classmethod
+    def ids_not_duplicated(cls, v: list[int]) -> list[int]:
+        deduped = list(dict.fromkeys(v))
+        return deduped

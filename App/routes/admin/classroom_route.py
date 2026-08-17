@@ -1,7 +1,11 @@
 from flask import Blueprint, jsonify, request, abort
 from App.decorators import role_required
 from App.utils.helpers import validate_request
-from App.requests.classroom_request import ClassroomCreateRequest, ClassroomResponse
+from App.requests.classroom_request import (
+    ClassroomCreateRequest,
+    ClassroomResponse,
+    BulkAssignStudentsRequest,
+)
 from App.services.classroom_services import (
     create_classroom,
     get_all_classrooms,
@@ -9,6 +13,7 @@ from App.services.classroom_services import (
     get_all_classroom_list,
     update_classroom as update_classroom_service,
     delete_classroom as delete_classroom_service,
+    bulk_assign_students as bulk_assign_students_service,
 )
 
 classroom_bp = Blueprint("classroom", __name__, url_prefix="/classrooms")
@@ -74,6 +79,20 @@ def update_classroom_route(data: ClassroomCreateRequest, classroom_id):
 
     serialized_classroom = ClassroomResponse.model_validate(updated_classroom).model_dump()
     return jsonify(serialized_classroom), 200
+
+
+# ====================================== bulk_assign_students_route ===============================================
+
+@classroom_bp.route("/<int:classroom_id>/students/bulk", methods=["POST"])
+@role_required("admin")
+@validate_request(BulkAssignStudentsRequest)
+def bulk_assign_students_route(data: BulkAssignStudentsRequest, classroom_id):
+    result = bulk_assign_students_service(classroom_id, data.student_ids)
+
+    if result is None:
+        abort(404, description="Classroom not found")
+
+    return jsonify(result), 200
 
 
 # ====================================== delete_classroom_route ===============================================

@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 
 from App.extensions import db
 from App.models.classroom import Classroom
+from App.models.student import Student
 
 
 def create_classroom(data):
@@ -70,6 +71,29 @@ def delete_classroom(classroom_id):
     db.session.delete(classroom)
     db.session.commit()
     return True
+
+
+def bulk_assign_students(classroom_id, student_ids):
+    classroom = db.session.get(Classroom, classroom_id)
+    if classroom is None:
+        return None
+
+    stmt = db.select(Student).where(Student.id.in_(student_ids))
+    students = db.session.scalars(stmt).all()
+
+    found_ids = {s.id for s in students}
+    missing_ids = [sid for sid in student_ids if sid not in found_ids]
+
+    for student in students:
+        student.classroom_id = classroom.id
+
+    db.session.commit()
+
+    return {
+        "classroom_id": classroom.id,
+        "assigned_ids": sorted(found_ids),
+        "missing_ids": missing_ids,
+    }
 
 
 def serialize_classroom(classroom):
