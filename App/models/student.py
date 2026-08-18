@@ -28,3 +28,4 @@ class Student(db.Model):
     classroom = db.relationship("Classroom", back_populates="students")
     results = db.relationship("Result", back_populates="student")
     attendance_records = db.relationship("Attendance", back_populates="student", cascade = "all, delete-orphan")
+    promotion_history = db.relationship("PromotionHistory", back_populates="student", cascade="all, delete-orphan")

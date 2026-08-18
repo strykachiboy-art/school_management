@@ -58,7 +58,10 @@ def mark_classroom_attendance(classroom_id, term_id, date, attendance_data):
 
             # Query existing attendance record
             attendance = Attendance.query.filter_by(
-                student_id=s_id, date=date
+                student_id=s_id,
+                term_id = term_id,
+                date=date,
+                
             ).first()
 
             if attendance:

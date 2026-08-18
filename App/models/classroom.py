@@ -19,6 +19,7 @@ class Classroom(db.Model):
     teacher_id = db.Column(db.Integer, db.ForeignKey("teachers.id"), nullable=True)
     created_at = db.Column(db.DateTime, default=_utcnow)
     updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow)
+    is_final_level = db.Column(db.Boolean, nullable = False, default = False)
     
     subjects = db.relationship("Subject", back_populates = "classrooms", secondary = classroom_subjects)
     teacher = db.relationship("Teacher", back_populates="classrooms", uselist=False)
