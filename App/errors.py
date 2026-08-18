@@ -1,6 +1,7 @@
 import logging
-from flask import jsonify, render_template, request
+from flask import jsonify, render_template
 from pydantic import ValidationError
+from werkzeug.exceptions import HTTPException
 from App.utils.helpers import wants_json
 
 logger = logging.getLogger(__name__)
@@ -8,27 +9,21 @@ logger = logging.getLogger(__name__)
 
 def register_error_handlers(app):
 
-    @app.errorhandler(400)
-    def handle_400(e):
-        message = getattr(e, "description", None) or "Bad request"
-        if wants_json():
-            return jsonify({"error": message}), 400
-        return render_template("errors/400.html", message=message), 400
+    # 1. Generic HTTP Exception Handler (400, 404, 403, etc.)
+    @app.errorhandler(HTTPException)
+    def handle_http_exception(e):
+        # Prefer specific description passed to abort(), fallback to default HTTP status name
+        message = e.description if e.description != HTTPException.description else e.name
 
-    @app.errorhandler(403)
-    def handle_403(e):
-        message = getattr(e, "description", None) or "Forbidden"
         if wants_json():
-            return jsonify({"error": message}), 403
-        return render_template("errors/403.html", message=message), 403
+            return jsonify({
+                "error": message,
+                "description": message
+            }), e.code
 
-    @app.errorhandler(404)
-    def handle_404(e):
-        message = getattr(e, "description", None) or "Not found"
-        if wants_json():
-            return jsonify({"error": message}), 404
-        return render_template("errors/404.html", message=message), 404
+        return render_template("errors/generic.html", error=e.name, message=message), e.code
 
+    # 2. Pydantic Schema Validation Error Handler
     @app.errorhandler(ValidationError)
     def handle_validation_error(e):
         details = [
@@ -36,13 +31,25 @@ def register_error_handlers(app):
             for err in e.errors()
         ]
         message = "Validation failed: " + ", ".join(f'{d["field"]} - {d["message"]}' for d in details)
+
         if wants_json():
-            return jsonify({"error": message, "details": details}), 400
+            return jsonify({
+                "error": message,
+                "description": message,
+                "details": details
+            }), 400  # Return 400 Bad Request to match test expectations
+
         return render_template("errors/400.html", message=message), 400
 
-    @app.errorhandler(500)
-    def handle_500(e):
-        logger.exception("Unhandled exception: %s", e)
+    # 3. Unhandled Internal Server Errors (500)
+    @app.errorhandler(Exception)
+    def handle_unexpected_error(e):
+        logger.exception("Unhandled server exception: %s", e)
+
         if wants_json():
-            return jsonify({"error": "An unexpected error occurred."}), 500
+            return jsonify({
+                "error": "Internal Server Error",
+                "description": "An unexpected error occurred."
+            }), 500
+
         return render_template("errors/500.html"), 500

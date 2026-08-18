@@ -117,7 +117,6 @@ def json_client(client):
 # 3. Model Factories
 # ----------------------------------------------------------------------
 
-
 # ----------------------------------------------------------------------
 # Attendance & Term Fixtures
 # ----------------------------------------------------------------------
@@ -165,6 +164,28 @@ def attendance_record(make_attendance):
 
 
 @pytest.fixture
+def sample_absent_attendance(make_attendance, student, term):
+    """Fixture providing an attendance record with ABSENT status."""
+    return make_attendance(
+        student_obj=student,
+        term_obj=term,
+        date_val=date(2026, 5, 11),
+        status=AttendanceStatus.ABSENT,
+    )
+
+
+@pytest.fixture
+def sample_present_attendance(make_attendance, student, term):
+    """Fixture providing an attendance record with PRESENT status."""
+    return make_attendance(
+        student_obj=student,
+        term_obj=term,
+        date_val=date(2026, 5, 12),
+        status=AttendanceStatus.PRESENT,
+    )
+
+
+@pytest.fixture
 def make_user(app):
     def _make(suffix="1", role="student"):
         with app.app_context():
@@ -202,6 +223,12 @@ def make_teacher(app):
             _db.session.expunge(teacher)
             return teacher
     return _make
+
+
+@pytest.fixture
+def sample_teacher(teacher):
+    """Alias fixture for teacher to match test function parameters."""
+    return teacher
 
 
 @pytest.fixture

@@ -46,6 +46,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     from App.routes.admin.term import term_bp
     from App.routes.admin.attendance import attendance_bp
     from App.routes.admin.promotion_route import promotion_bp
+    from App.routes.admin.excuse_route import excuse_bp
     
     
 
@@ -64,6 +65,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     app.register_blueprint(term_bp, url_prefix = "/terms")
     app.register_blueprint(attendance_bp, url_prefix = "/attendances")
     app.register_blueprint(promotion_bp, url_prefix="/promotions")
+    app.register_blueprint(excuse_bp, url_prefix="/excuses")
     
     
     register_error_handlers(app)
@@ -92,6 +94,5 @@ def create_app(config: Optional[dict] = None) -> Flask:
         return response
 
     return app
-
 
 __all__ = ["create_app", "db"]

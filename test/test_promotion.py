@@ -55,7 +55,7 @@ def test_evaluate_promotion_recommends_repeated_on_low_attendance(app, student, 
     _mark_present(app, student, term, 7, status=AttendanceStatus.ABSENT, start_day=20)
 
     evaluation = evaluate_student_promotion(student.id, academic_session.id)
-
+    
     assert evaluation["attendance_percentage"] == 30.0
     assert evaluation["recommendation"] == PromotionDecision.REPEATED
 

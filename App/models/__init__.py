@@ -12,5 +12,6 @@ from App.models.academic_session import AcademicSession
 from App.models.term import Term
 from App.models.attendance import Attendance
 from App.models.promotion_history import PromotionHistory
+from App.models.excuses import Excuse
 
 
