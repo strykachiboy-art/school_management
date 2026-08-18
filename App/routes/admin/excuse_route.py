@@ -1,6 +1,7 @@
-from flask import Blueprint, jsonify, request, g
+from flask import Blueprint, jsonify, request, g, abort
 from pydantic import ValidationError
 
+from App.decorators import role_required
 from App.requests.excuse_request import ExcuseCreateRequest, ExcuseUpdateRequest, ExcuseResponse
 from App.services import excuse_service
 from App.enums.excuse import ExcuseStatus
@@ -8,9 +9,15 @@ from App.enums.excuse import ExcuseStatus
 excuse_bp = Blueprint("excuse_bp", __name__, url_prefix="/excuses")
 
 
-# ============================ 1. Create Excuse ============================
+def _current_student_id() -> int:
+    student = g.user.student_profile
+    if student is None:
+        abort(403, description="Student profile not found.")
+    return student.id
+
 
 @excuse_bp.route("", methods=["POST"])
+@role_required("student")
 def create_excuse():
     try:
         data = ExcuseCreateRequest.model_validate(request.get_json() or {})
@@ -20,21 +27,20 @@ def create_excuse():
     excuse = excuse_service.create_excuse(
         attendance_id=data.attendance_id,
         reason=data.reason,
+        student_id=_current_student_id(),
     )
     return jsonify(ExcuseResponse.model_validate(excuse).model_dump()), 201
 
 
-# ============================ 2. Get Single Excuse ============================
-
 @excuse_bp.route("/<int:excuse_id>", methods=["GET"])
+@role_required("admin", "teacher", "student")
 def get_excuse(excuse_id: int):
     excuse = excuse_service.get_excuse(excuse_id)
     return jsonify(ExcuseResponse.model_validate(excuse).model_dump()), 200
 
 
-# ============================ 3. Get Excuses (List/Filter) ============================
-
 @excuse_bp.route("", methods=["GET"])
+@role_required("admin", "teacher", "student")
 def get_excuses():
     student_id = request.args.get("student_id", type=int)
     term_id = request.args.get("term_id", type=int)
@@ -56,9 +62,8 @@ def get_excuses():
     return jsonify(results), 200
 
 
-# ============================ 4. Update Excuse ============================
-
 @excuse_bp.route("/<int:excuse_id>", methods=["PATCH"])
+@role_required("student")
 def update_excuse(excuse_id: int):
     try:
         data = ExcuseUpdateRequest.model_validate(request.get_json() or {})
@@ -68,43 +73,36 @@ def update_excuse(excuse_id: int):
     excuse = excuse_service.update_excuse(
         excuse_id=excuse_id,
         reason=data.reason,
+        student_id=_current_student_id(),
     )
     return jsonify(ExcuseResponse.model_validate(excuse).model_dump()), 200
 
 
-# ============================ 5. Delete Excuse ============================
-
 @excuse_bp.route("/<int:excuse_id>", methods=["DELETE"])
+@role_required("student")
 def delete_excuse(excuse_id: int):
-    excuse_service.delete_excuse(excuse_id)
+    excuse_service.delete_excuse(
+        excuse_id=excuse_id,
+        student_id=_current_student_id(),
+    )
     return jsonify({"message": f"Excuse {excuse_id} deleted successfully."}), 200
 
 
-# ============================ 6. Approve Excuse ============================
-
 @excuse_bp.route("/<int:excuse_id>/approve", methods=["POST"])
+@role_required("admin", "teacher")
 def approve_excuse(excuse_id: int):
-    reviewer_id = getattr(g, "user_id", None) or request.json.get("reviewer_id") if request.is_json else None
-    if not reviewer_id:
-        return jsonify({"error": "Reviewer ID is required."}), 400
-
     excuse = excuse_service.approve_excuse(
         excuse_id=excuse_id,
-        reviewer_id=reviewer_id,
+        reviewer_id=g.user.id,
     )
     return jsonify(ExcuseResponse.model_validate(excuse).model_dump()), 200
 
 
-# ============================ 7. Reject Excuse ============================
-
 @excuse_bp.route("/<int:excuse_id>/reject", methods=["POST"])
+@role_required("admin", "teacher")
 def reject_excuse(excuse_id: int):
-    reviewer_id = getattr(g, "user_id", None) or request.json.get("reviewer_id") if request.is_json else None
-    if not reviewer_id:
-        return jsonify({"error": "Reviewer ID is required."}), 400
-
     excuse = excuse_service.reject_excuse(
         excuse_id=excuse_id,
-        reviewer_id=reviewer_id,
+        reviewer_id=g.user.id,
     )
     return jsonify(ExcuseResponse.model_validate(excuse).model_dump()), 200

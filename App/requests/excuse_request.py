@@ -1,19 +1,21 @@
 from datetime import datetime
 from typing import Optional
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 from App.enums.excuse import ExcuseStatus
 
 
 class ExcuseCreateRequest(BaseModel):
-    attendance_id: int
-    reason: str
+    attendance_id: int = Field(..., gt=0, description="ID of the attendance record being excused")
+    reason: str = Field(..., min_length=5, max_length=500, description="Reason for the absence")
 
 
 class ExcuseUpdateRequest(BaseModel):
-    reason: str
+    reason: str = Field(..., min_length=5, max_length=500, description="Updated reason for the absence")
 
 
 class ExcuseResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     attendance_id: int
     reason: str
@@ -22,5 +24,3 @@ class ExcuseResponse(BaseModel):
     reviewed_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
