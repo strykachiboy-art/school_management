@@ -42,7 +42,11 @@ def get_all_classrooms_route():
         serialized_list = [ClassroomResponse.model_validate(c).model_dump() for c in classrooms]
         return jsonify(serialized_list), 200
 
-    page = get_all_classrooms(search=request.args.get("search", "", type=str))
+    page = get_all_classrooms(
+        search=request.args.get("search", "", type=str),
+        page=request.args.get("page", 1, type=int),
+        per_page=request.args.get("per_page", 10, type=int),
+    )
 
     return jsonify({
         "items": [ClassroomResponse.model_validate(item).model_dump() for item in page.items],
