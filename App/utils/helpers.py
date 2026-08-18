@@ -4,8 +4,11 @@ from pydantic import ValidationError
 
 
 def wants_json():
-    return request.accept_mimetypes.accept_json and \
-        not request.accept_mimetypes.accept_html
+    return (
+        request.is_json
+        or request.accept_mimetypes["application/json"]
+        >= request.accept_mimetypes["text/html"]
+    )
 
 
 def validate_request(schema=None):
