@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, g, abort
 from pydantic import ValidationError
 
 from App.decorators import role_required
-from App.requests.excuse_request import ExcuseCreateRequest, ExcuseUpdateRequest, ExcuseResponse
+from App.requests.excuse_request import ExcuseCreateRequest, ExcuseUpdateRequest, ExcuseResponse, BulkExcuseReviewRequest
 from App.services import excuse_service
 from App.enums.excuse import ExcuseStatus
 
@@ -106,3 +106,35 @@ def reject_excuse(excuse_id: int):
         reviewer_id=g.user.id,
     )
     return jsonify(ExcuseResponse.model_validate(excuse).model_dump()), 200
+
+
+@excuse_bp.route("/bulk-approve", methods=["POST"])
+@role_required("admin", "teacher")
+def bulk_approve_excuses():
+    try:
+        data = BulkExcuseReviewRequest.model_validate(request.get_json() or {})
+    except ValidationError as err:
+        return jsonify({"errors": err.errors()}), 400
+
+    result = excuse_service.bulk_review_excuses(
+        excuse_ids=data.excuse_ids,
+        decision=ExcuseStatus.APPROVED,
+        reviewer_id=g.user.id,
+    )
+    return jsonify(result), 200
+
+
+@excuse_bp.route("/bulk-reject", methods=["POST"])
+@role_required("admin", "teacher")
+def bulk_reject_excuses():
+    try:
+        data = BulkExcuseReviewRequest.model_validate(request.get_json() or {})
+    except ValidationError as err:
+        return jsonify({"errors": err.errors()}), 400
+
+    result = excuse_service.bulk_review_excuses(
+        excuse_ids=data.excuse_ids,
+        decision=ExcuseStatus.REJECTED,
+        reviewer_id=g.user.id,
+    )
+    return jsonify(result), 200

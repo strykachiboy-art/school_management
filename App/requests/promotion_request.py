@@ -36,6 +36,19 @@ class GraduateStudentRequest(BaseModel):
     remarks: Optional[str] = None
 
 
+# ====================================== bulk promote_session ===============================================
+
+class BulkPromoteRequest(BaseModel):
+    classroom_id: Optional[int] = None  # omit to bulk-promote the whole session
+
+
+class BulkPromoteResponse(BaseModel):
+    promoted: list[int]
+    repeated: list[int]
+    graduated: list[int]
+    skipped: list[dict]
+
+
 # ====================================== PromotionHistory response ===============================================
 
 class PromotionHistoryResponse(BaseModel):

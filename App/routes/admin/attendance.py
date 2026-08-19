@@ -1,5 +1,6 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, g
 from pydantic import ValidationError
+from App.decorators import role_required
 
 attendance_bp = Blueprint("attendance", __name__, url_prefix="/attendances")
 
@@ -38,13 +39,14 @@ def serialize_attendance(attendance):
 # ============================ 1. Create Single Attendance ============================
 
 @attendance_bp.route("", methods=["POST"])
+@role_required()
 def create_attendance():
     try:
         data = AttendanceCreateRequest.model_validate(request.json)
     except ValidationError as err:
         return jsonify(err.errors()), 422
 
-    record = create_attendance_service(data)
+    record = create_attendance_service(data, actor_role=g.user.role if g.user else None)
     return jsonify(serialize_attendance(record)), 201
 
 
@@ -64,6 +66,7 @@ def mark_classroom_attendance(classroom_id: int):
         term_id=payload.term_id,
         date=payload.date,
         attendance_data=records,
+        actor_role=g.user.role if g.user else None,
     )
     
     return jsonify({"message": "Classroom attendance marked successfully."}), 200

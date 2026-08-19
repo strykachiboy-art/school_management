@@ -243,3 +243,89 @@ def get_session_promotions(academic_session_id):
         .order_by(PromotionHistory.created_at.asc())
     )
     return db.session.scalars(stmt).all()
+
+
+def _find_next_classroom(current_classroom):
+    """Find the classroom one level above the given one, if levels are configured."""
+    if current_classroom is None or current_classroom.level is None:
+        return None
+    return db.session.scalar(
+        db.select(Classroom).where(Classroom.level == current_classroom.level + 1)
+    )
+
+
+def promote_session_students(academic_session_id, classroom_id=None, decided_by=None):
+    """
+    Bulk-evaluate every student in a session (optionally scoped to one classroom)
+    and apply the resulting promote/repeat/graduate decision to each of them.
+
+    Students that fail promotion criteria are marked REPEATED (bulk runs never
+    force-promote a failing student — that override still requires the single
+    -student endpoint with a teacher decision). Students recommended PROMOTED
+    but whose current classroom has no configured next-level classroom are
+    skipped and reported so an admin can fix the classroom setup.
+    """
+    session = db.session.get(AcademicSession, academic_session_id)
+    if session is None:
+        abort(404, description="Academic session not found")
+
+    query = db.select(Student).where(Student.classroom_id.isnot(None))
+    if classroom_id is not None:
+        query = query.where(Student.classroom_id == classroom_id)
+
+    students = db.session.scalars(query).all()
+
+    results = {"promoted": [], "repeated": [], "graduated": [], "skipped": []}
+    history_records = []
+
+    for student in students:
+        evaluation = evaluate_student_promotion(student.id, academic_session_id)
+        if evaluation is None:
+            results["skipped"].append({"student_id": student.id, "reason": "evaluation unavailable"})
+            continue
+
+        current_classroom = (
+            db.session.get(Classroom, student.classroom_id) if student.classroom_id else None
+        )
+        decision = evaluation["recommendation"]
+        from_classroom_id = student.classroom_id
+
+        if decision == PromotionDecision.REPEATED:
+            to_classroom_id = student.classroom_id
+            results["repeated"].append(student.id)
+
+        elif decision == PromotionDecision.GRADUATED:
+            to_classroom_id = None
+            student.classroom_id = None
+            results["graduated"].append(student.id)
+
+        else:  # PROMOTED
+            next_classroom = _find_next_classroom(current_classroom)
+            if next_classroom is None:
+                results["skipped"].append(
+                    {"student_id": student.id, "reason": "no next-level classroom configured"}
+                )
+                continue
+            to_classroom_id = next_classroom.id
+            student.classroom_id = next_classroom.id
+            results["promoted"].append(student.id)
+
+        history_records.append(
+            PromotionHistory(
+                student_id=student.id,
+                academic_session_id=academic_session_id,
+                from_classroom_id=from_classroom_id,
+                to_classroom_id=to_classroom_id,
+                decision=decision,
+                average_score=evaluation["average_score"],
+                attendance_percentage=evaluation["attendance_percentage"],
+                remarks="Bulk end-of-term promotion run",
+                decided_by=decided_by,
+            )
+        )
+
+    if history_records:
+        db.session.bulk_save_objects(history_records)
+    db.session.commit()
+
+    return results

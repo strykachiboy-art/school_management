@@ -8,6 +8,8 @@ from App.requests.promotion_request import (
     RepeatStudentRequest,
     GraduateStudentRequest,
     PromotionHistoryResponse,
+    BulkPromoteRequest,
+    BulkPromoteResponse,
 )
 from App.services.promotion_service import (
     evaluate_student_promotion,
@@ -16,6 +18,7 @@ from App.services.promotion_service import (
     graduate_student as graduate_student_service,
     get_student_promotion_history,
     get_session_promotions,
+    promote_session_students,
 )
 
 promotion_bp = Blueprint("promotion", __name__, url_prefix="/promotions")
@@ -125,4 +128,20 @@ def session_promotions_route(academic_session_id):
         abort(404, description="Academic session not found")
 
     serialized = [PromotionHistoryResponse.model_validate(p).model_dump() for p in promotions]
+    return jsonify(serialized), 200
+
+
+# ====================================== bulk_promote_session_route ===============================================
+
+@promotion_bp.route("/sessions/<int:academic_session_id>/bulk-promote", methods=["POST"])
+@role_required("admin")
+@validate_request(BulkPromoteRequest)
+def bulk_promote_session_route(data: BulkPromoteRequest, academic_session_id):
+    results = promote_session_students(
+        academic_session_id,
+        classroom_id=data.classroom_id,
+        decided_by=g.user.id if g.user else None,
+    )
+
+    serialized = BulkPromoteResponse.model_validate(results).model_dump()
     return jsonify(serialized), 200

@@ -13,6 +13,10 @@ class ExcuseUpdateRequest(BaseModel):
     reason: str = Field(..., min_length=5, max_length=500, description="Updated reason for the absence")
 
 
+class BulkExcuseReviewRequest(BaseModel):
+    excuse_ids: list[int] = Field(..., min_length=1, description="IDs of excuses to approve or reject")
+
+
 class ExcuseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

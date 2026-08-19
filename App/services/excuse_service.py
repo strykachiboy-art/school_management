@@ -14,6 +14,10 @@ def _utcnow() -> datetime:
     return datetime.now(timezone.utc)
 
 
+# Excuses must be requested within this many days of the absence they cover.
+EXCUSE_REQUEST_WINDOW_DAYS = 7
+
+
 def _assert_owns_excuse(excuse: Excuse, student_id: int) -> None:
     if excuse.attendance.student_id != student_id:
         abort(403, description="You can only manage your own excuse requests.")
@@ -31,6 +35,16 @@ def create_excuse(attendance_id: int, reason: str, student_id: int) -> Excuse:
         abort(
             400,
             description="An excuse can only be submitted for an ABSENT attendance record.",
+        )
+
+    days_since_absence = (_utcnow().date() - attendance.date).days
+    if days_since_absence > EXCUSE_REQUEST_WINDOW_DAYS:
+        abort(
+            400,
+            description=(
+                f"Excuses must be requested within {EXCUSE_REQUEST_WINDOW_DAYS} days of the "
+                f"absence. This absence was {days_since_absence} days ago."
+            ),
         )
 
     existing_excuse = db.session.scalar(
@@ -151,3 +165,44 @@ def reject_excuse(excuse_id: int, reviewer_id: int) -> Excuse:
 
     db.session.commit()
     return excuse
+
+
+def bulk_review_excuses(excuse_ids: list, decision: ExcuseStatus, reviewer_id: int) -> dict:
+    """
+    Approve or reject multiple excuses in one call. Excuses that don't exist or
+    aren't PENDING are skipped and reported rather than failing the whole batch.
+    """
+    if decision not in (ExcuseStatus.APPROVED, ExcuseStatus.REJECTED):
+        abort(400, description="decision must be either 'approved' or 'rejected'.")
+
+    excuses = db.session.scalars(
+        db.select(Excuse).where(Excuse.id.in_(excuse_ids))
+    ).all()
+
+    found_ids = {excuse.id for excuse in excuses}
+    not_found = [eid for eid in excuse_ids if eid not in found_ids]
+
+    reviewed = []
+    skipped = []
+    reviewed_at = _utcnow()
+
+    for excuse in excuses:
+        if excuse.status != ExcuseStatus.PENDING:
+            skipped.append({"excuse_id": excuse.id, "reason": f"already {excuse.status.value}"})
+            continue
+
+        excuse.status = decision
+        excuse.reviewed_by = reviewer_id
+        excuse.reviewed_at = reviewed_at
+        excuse.attendance.status = (
+            AttendanceStatus.EXCUSED if decision == ExcuseStatus.APPROVED else AttendanceStatus.ABSENT
+        )
+        reviewed.append(excuse.id)
+
+    db.session.commit()
+
+    return {
+        "reviewed": reviewed,
+        "skipped": skipped,
+        "not_found": not_found,
+    }

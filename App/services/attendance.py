@@ -1,4 +1,5 @@
 from flask import abort
+from datetime import datetime, timezone
 from sqlalchemy.exc import IntegrityError
 from werkzeug.exceptions import HTTPException
 
@@ -8,12 +9,30 @@ from App.models.student import Student
 from App.enums.attendance import AttendanceStatus
 
 
+def _today():
+    return datetime.now(timezone.utc).date()
+
+
+def _assert_date_not_future(record_date, actor_role):
+    """Block future-dated attendance unless a teacher is deliberately backfilling/exempting."""
+    if record_date > _today() and actor_role != "teacher":
+        abort(
+            400,
+            description=(
+                "Attendance date cannot be in the future. "
+                "Only a teacher can record attendance for a future date as an exception."
+            ),
+        )
+
+
 # ============================ 1. Create Single Attendance ============================
 
-def create_attendance(data):
+def create_attendance(data, actor_role=None):
     """
     Creates a single Attendance record.
     """
+    _assert_date_not_future(data.date, actor_role)
+
     new_attendance = Attendance(
         student_id=data.student_id,
         term_id=data.term_id,
@@ -36,49 +55,62 @@ def create_attendance(data):
 
 # ============================ 2. Bulk Mark Classroom Attendance ============================
 
-def mark_classroom_attendance(classroom_id, term_id, date, attendance_data):
+def mark_classroom_attendance(classroom_id, term_id, date, attendance_data, actor_role=None):
     """
     Bulk creates or updates attendance records for a classroom on a specific date.
     """
+    _assert_date_not_future(date, actor_role)
+
     try:
         # Fetch valid student IDs for this classroom
         classroom_students = Student.query.filter_by(classroom_id=classroom_id).all()
         valid_student_ids = {student.id for student in classroom_students}
 
+        requested_student_ids = []
         for record in attendance_data:
             s_id = record["student_id"]
-            status = record["status"]
-
-            # Verify student belongs to classroom
             if s_id not in valid_student_ids:
                 abort(
                     400,
                     description=f"Student ID {s_id} does not belong to classroom {classroom_id}.",
                 )
+            requested_student_ids.append(s_id)
 
-            # Query existing attendance record
-            attendance = Attendance.query.filter_by(
-                student_id=s_id,
-                term_id = term_id,
-                date=date,
-                
-            ).first()
+        # Fetch every existing record for this date/term in one query instead of
+        # one query per student (avoids N+1 round-trips for large classrooms)
+        existing_records = Attendance.query.filter(
+            Attendance.student_id.in_(requested_student_ids),
+            Attendance.term_id == term_id,
+            Attendance.date == date,
+        ).all()
+        existing_by_student = {record.student_id: record for record in existing_records}
 
-            if attendance:
+        new_records = []
+        for record in attendance_data:
+            s_id = record["student_id"]
+            status = record["status"]
+
+            existing = existing_by_student.get(s_id)
+            if existing:
                 # Update existing record
-                attendance.term_id = term_id
-                attendance.status = status
+                existing.term_id = term_id
+                existing.status = status
             else:
-                # Create new record
-                attendance = Attendance(
-                    student_id=s_id,
-                    term_id=term_id,
-                    date=date,
-                    status=status,
+                # Queue for bulk insert
+                new_records.append(
+                    Attendance(
+                        student_id=s_id,
+                        term_id=term_id,
+                        date=date,
+                        status=status,
+                    )
                 )
-                db.session.add(attendance)
 
-        # Commit all changes at once
+        # Insert all new records in a single batched operation
+        if new_records:
+            db.session.bulk_save_objects(new_records)
+
+        # Commit all changes at once (updates + bulk inserts)
         db.session.commit()
         return True
 
