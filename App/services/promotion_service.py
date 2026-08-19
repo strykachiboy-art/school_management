@@ -93,7 +93,7 @@ def evaluate_student_promotion(student_id, academic_session_id):
     }
 
 
-def promote_student(student_id, academic_session_id, to_classroom_id, remarks=None, decided_by=None, decided_by_role=None):
+def promote_student(student_id, academic_session_id, to_classroom_id, remarks=None, decided_by=None, decided_by_role=None, allow_level_skip=False):
     student = db.session.get(Student, student_id)
     if student is None:
         return None
@@ -101,6 +101,29 @@ def promote_student(student_id, academic_session_id, to_classroom_id, remarks=No
     to_classroom = db.session.get(Classroom, to_classroom_id)
     if to_classroom is None:
         abort(400, description="Target classroom not found")
+
+    from_classroom = (
+        db.session.get(Classroom, student.classroom_id) if student.classroom_id else None
+    )
+
+    # Guard against skipping levels by mistake (e.g. JSS1 -> SS3). Only enforced
+    # when both classrooms have a level set — older/unconfigured classrooms
+    # without a level are left unchecked rather than blocking promotion.
+    if (
+        from_classroom is not None
+        and from_classroom.level is not None
+        and to_classroom.level is not None
+    ):
+        expected_level = from_classroom.level + 1
+        if to_classroom.level != expected_level and not allow_level_skip:
+            abort(
+                400,
+                description=(
+                    f"Cannot promote from level {from_classroom.level} to level "
+                    f"{to_classroom.level}: expected level {expected_level}. "
+                    "Pass allow_level_skip=true to override intentionally."
+                ),
+            )
 
     evaluation = evaluate_student_promotion(student_id, academic_session_id)
 
@@ -120,6 +143,11 @@ def promote_student(student_id, academic_session_id, to_classroom_id, remarks=No
 
     student.classroom_id = to_classroom_id
 
+    final_remarks = remarks
+    if allow_level_skip and from_classroom is not None and from_classroom.level is not None and to_classroom.level is not None:
+        skip_note = f"[Level skip override: {from_classroom.level} -> {to_classroom.level}]"
+        final_remarks = f"{skip_note} {remarks}" if remarks else skip_note
+
     history = PromotionHistory(
         student_id=student_id,
         academic_session_id=academic_session_id,
@@ -128,7 +156,7 @@ def promote_student(student_id, academic_session_id, to_classroom_id, remarks=No
         decision=PromotionDecision.PROMOTED,
         average_score=evaluation["average_score"] if evaluation else None,
         attendance_percentage=evaluation["attendance_percentage"] if evaluation else None,
-        remarks=remarks,
+        remarks=final_remarks,
         decided_by=decided_by,
     )
 

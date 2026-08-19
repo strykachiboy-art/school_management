@@ -47,6 +47,7 @@ def promote_student_route(data: PromoteStudentRequest, student_id, academic_sess
         remarks=data.remarks,
         decided_by=g.user.id if g.user else None,
         decided_by_role=g.user.role if g.user else None,
+        allow_level_skip=data.allow_level_skip,
     )
 
     if history is None:

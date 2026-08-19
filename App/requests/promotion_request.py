@@ -21,6 +21,7 @@ class PromotionEvaluationResponse(BaseModel):
 class PromoteStudentRequest(BaseModel):
     to_classroom_id: int
     remarks: Optional[str] = None
+    allow_level_skip: bool = False
 
 
 # ====================================== repeat_student ===============================================
