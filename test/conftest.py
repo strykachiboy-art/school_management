@@ -117,10 +117,6 @@ def json_client(client):
 # 3. Model Factories
 # ----------------------------------------------------------------------
 
-# ----------------------------------------------------------------------
-# Attendance & Term Fixtures
-# ----------------------------------------------------------------------
-
 @pytest.fixture
 def term(app, academic_session):
     """Creates a default Term record linked to the AcademicSession fixture."""
@@ -394,6 +390,25 @@ def student_in_teacher_classroom(app, teacher, classroom, student):
 # ----------------------------------------------------------------------
 # 5. Auth / Header Fixtures
 # ----------------------------------------------------------------------
+
+@pytest.fixture(scope="function")
+def auth_headers(app):
+    """Dynamic factory fixture to generate JWT authorization headers for any user or role."""
+    from flask_jwt_extended import create_access_token
+
+    def _get_headers(user_id=1, role="admin"):
+        with app.app_context():
+            token = create_access_token(
+                identity=str(user_id),
+                additional_claims={"role": role},
+            )
+            return {
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/json",
+            }
+
+    return _get_headers
+
 
 @pytest.fixture(scope="function")
 def admin_headers(app):

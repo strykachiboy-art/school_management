@@ -4,7 +4,6 @@ from App.decorators import role_required
 
 attendance_bp = Blueprint("attendance", __name__, url_prefix="/attendances")
 
-
 from App.requests.attendance import (
     AttendanceCreateRequest,
     AttendanceUpdateRequest,
@@ -39,7 +38,7 @@ def serialize_attendance(attendance):
 # ============================ 1. Create Single Attendance ============================
 
 @attendance_bp.route("", methods=["POST"])
-@role_required()
+@role_required("admin", "teacher")
 def create_attendance():
     try:
         data = AttendanceCreateRequest.model_validate(request.json)
@@ -53,7 +52,7 @@ def create_attendance():
 # ============================ 2. Mark Classroom Attendance (Bulk) ============================
 
 @attendance_bp.route("/classrooms/<int:classroom_id>/mark", methods=["POST"])
-@role_required()
+@role_required("admin", "teacher")
 def mark_classroom_attendance(classroom_id: int):
     try:
         payload = MarkClassroomAttendanceRequest.model_validate(request.json)
@@ -69,14 +68,14 @@ def mark_classroom_attendance(classroom_id: int):
         attendance_data=records,
         actor_role=g.user.role if g.user else None,
     )
-    
+
     return jsonify({"message": "Classroom attendance marked successfully."}), 200
 
 
 # ============================ 3. Get Single Attendance ============================
 
 @attendance_bp.route("/<int:attendance_id>", methods=["GET"])
-@role_required()
+@role_required("admin", "teacher", "student", "parent")
 def get_attendance_by_id(attendance_id: int):
     record = get_attendance_by_id_service(attendance_id)
     return jsonify(serialize_attendance(record)), 200
@@ -85,7 +84,7 @@ def get_attendance_by_id(attendance_id: int):
 # ============================ 4. Get Student Attendance History ============================
 
 @attendance_bp.route("/students/<int:student_id>", methods=["GET"])
-@role_required()
+@role_required("admin", "teacher", "student", "parent")
 def get_student_attendance(student_id: int):
     term_id = request.args.get("term_id", type=int)
     start_date = request.args.get("start_date")
@@ -103,7 +102,7 @@ def get_student_attendance(student_id: int):
 # ============================ 5. Get Classroom Attendance ============================
 
 @attendance_bp.route("/classrooms/<int:classroom_id>", methods=["GET"])
-@role_required()
+@role_required("admin", "teacher")
 def get_classroom_attendance(classroom_id: int):
     date_val = request.args.get("date")
     term_id = request.args.get("term_id", type=int)
@@ -119,7 +118,7 @@ def get_classroom_attendance(classroom_id: int):
 # ============================ 6. Get Term Attendance ============================
 
 @attendance_bp.route("/terms/<int:term_id>", methods=["GET"])
-@role_required()
+@role_required("admin", "teacher")
 def get_term_attendance(term_id: int):
     records = get_term_attendance_service(term_id)
     return jsonify(serialize_attendance(records)), 200
@@ -128,7 +127,7 @@ def get_term_attendance(term_id: int):
 # ============================ 7. Update Attendance ============================
 
 @attendance_bp.route("/<int:attendance_id>", methods=["PATCH"])
-@role_required()
+@role_required("admin", "teacher")
 def update_attendance(attendance_id: int):
     try:
         data = AttendanceUpdateRequest.model_validate(request.json)
@@ -146,7 +145,7 @@ def update_attendance(attendance_id: int):
 # ============================ 8. Delete Attendance ============================
 
 @attendance_bp.route("/<int:attendance_id>", methods=["DELETE"])
-@role_required()
+@role_required("admin", "teacher")
 def delete_attendance(attendance_id: int):
     delete_attendance_service(attendance_id)
     return jsonify({"message": f"Attendance record {attendance_id} deleted successfully."}), 200
@@ -155,7 +154,7 @@ def delete_attendance(attendance_id: int):
 # ============================ 9. Get Attendance Summary ============================
 
 @attendance_bp.route("/students/<int:student_id>/summary", methods=["GET"])
-@role_required()
+@role_required("admin", "teacher", "student", "parent")
 def get_attendance_summary(student_id: int):
     term_id = request.args.get("term_id", type=int)
     summary = get_attendance_summary_service(

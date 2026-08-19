@@ -44,15 +44,20 @@ def evaluate_promotion_route(student_id, academic_session_id):
 @role_required("admin", "teacher")
 @validate_request(PromoteStudentRequest)
 def promote_student_route(data: PromoteStudentRequest, student_id, academic_session_id):
-    history = promote_student_service(
-        student_id,
-        academic_session_id,
-        data.to_classroom_id,
-        remarks=data.remarks,
-        decided_by=g.user.id if g.user else None,
-        decided_by_role=g.user.role if g.user else None,
-        allow_level_skip=data.allow_level_skip,
-    )
+    try:
+        history = promote_student_service(
+            student_id,
+            academic_session_id,
+            data.to_classroom_id,
+            remarks=data.remarks,
+            decided_by=g.user.id if g.user else None,
+            decided_by_role=g.user.role if g.user else None,
+            allow_level_skip=data.allow_level_skip,
+        )
+    except ValueError as err:
+        abort(400, description=str(err))
+    except PermissionError as err:
+        abort(403, description=str(err))
 
     if history is None:
         abort(404, description="Student not found")
@@ -173,11 +178,14 @@ def session_promotions_route(academic_session_id):
 @role_required("admin")
 @validate_request(BulkPromoteRequest)
 def bulk_promote_session_route(data: BulkPromoteRequest, academic_session_id):
-    results = promote_session_students(
-        academic_session_id,
-        classroom_id=data.classroom_id,
-        decided_by=g.user.id if g.user else None,
-    )
+    try:
+        results = promote_session_students(
+            academic_session_id,
+            classroom_id=data.classroom_id,
+            decided_by=g.user.id if g.user else None,
+        )
+    except ValueError as err:
+        abort(404, description=str(err))
 
     serialized = BulkPromoteResponse.model_validate(results).model_dump()
     return jsonify(serialized), 200

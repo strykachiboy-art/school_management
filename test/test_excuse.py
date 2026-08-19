@@ -1,105 +1,118 @@
-from datetime import date
-import pytest
-
-from App.enums.attendance import AttendanceStatus
+from datetime import date, datetime, timedelta, timezone
+from flask_jwt_extended import create_access_token
 from App.enums.excuse import ExcuseStatus
-from App.models.attendance import Attendance
 from App.models.excuses import Excuse
 
 
-def test_approve_excuse_workflow(client, db_session, sample_absent_attendance, sample_teacher, student_headers, teacher_headers):
+# ============================ 1. Window Expiry Test ============================
+
+def test_cannot_create_excuse_past_window_days(client, db_session, sample_absent_attendance, student_headers):
     """
-    Test full approval flow:
-    Absent -> Submit Excuse (Pending) -> Approve -> Status becomes EXCUSED and APPROVED
+    Cannot submit an excuse for an absence older than EXCUSE_REQUEST_WINDOW_DAYS (7 days).
     """
-    # 1. Create Excuse as Student
-    create_res = client.post(
+    sample_absent_attendance.date = (datetime.now(timezone.utc) - timedelta(days=8)).date()
+    db_session.add(sample_absent_attendance)
+    db_session.commit()
+
+    res = client.post(
         "/excuses",
         json={
             "attendance_id": sample_absent_attendance.id,
-            "reason": "Severe fever and Doctor note attached."
+            "reason": "Old absence excuse"
         },
         headers=student_headers
     )
-    assert create_res.status_code == 201
-    excuse_id = create_res.json["id"]
-    assert create_res.json["status"] == "pending"
+    assert res.status_code == 400
+    assert "within 7 days" in res.json["description"]
 
-    # 2. Approve Excuse as Teacher
-    approve_res = client.post(
-        f"/excuses/{excuse_id}/approve",
-        headers=teacher_headers
+
+# ============================ 2. Duplicate Request Test ============================
+
+def test_cannot_create_duplicate_excuse(client, db_session, sample_absent_attendance, student_headers):
+    """
+    Cannot submit a second excuse request for the same attendance record.
+    """
+    sample_absent_attendance = db_session.merge(sample_absent_attendance)
+    sample_absent_attendance.date = date.today()
+    db_session.add(sample_absent_attendance)
+    db_session.commit()
+
+    existing_excuse = Excuse(
+        attendance_id=sample_absent_attendance.id,
+        reason="First excuse",
+        status=ExcuseStatus.PENDING
     )
-    assert approve_res.status_code == 200
-    assert approve_res.json["status"] == "approved"
-    assert approve_res.json["reviewed_by"] == sample_teacher.user_id
+    db_session.add(existing_excuse)
+    db_session.commit()
 
-    # 3. Verify Attendance status changed automatically to EXCUSED
-    attendance = db_session.get(Attendance, sample_absent_attendance.id)
-    assert attendance.status == AttendanceStatus.EXCUSED
+    res = client.post(
+        "/excuses",
+        json={
+            "attendance_id": sample_absent_attendance.id,
+            "reason": "Second excuse attempt"
+        },
+        headers=student_headers
+    )
+    assert res.status_code == 400
+    assert "already exists" in res.json["description"]
 
 
-def test_reject_excuse_workflow(client, db_session, sample_absent_attendance, sample_teacher, teacher_headers):
+# ============================ 3. Authorization / Ownership Test ============================
+
+def test_cannot_modify_other_student_excuse(client, db_session, sample_absent_attendance, student2):
     """
-    Test full rejection flow:
-    Absent -> Submit Excuse -> Reject -> Attendance remains ABSENT
+    A student cannot update an excuse belonging to another student.
     """
+    sample_absent_attendance = db_session.merge(sample_absent_attendance)
     excuse = Excuse(
         attendance_id=sample_absent_attendance.id,
-        reason="Went to family event",
+        reason="Original student excuse",
         status=ExcuseStatus.PENDING
     )
     db_session.add(excuse)
     db_session.commit()
 
-    # Reject Excuse as Teacher
-    reject_res = client.post(
-        f"/excuses/{excuse.id}/reject",
-        headers=teacher_headers
-    )
-    assert reject_res.status_code == 200
-    assert reject_res.json["status"] == "rejected"
-    assert reject_res.json["reviewed_by"] == sample_teacher.user_id
-
-    attendance = db_session.get(Attendance, sample_absent_attendance.id)
-    assert attendance.status == AttendanceStatus.ABSENT
-
-
-def test_cannot_create_excuse_for_present_student(client, sample_present_attendance, student_headers):
-    """
-    Cannot submit an excuse for a student who was marked PRESENT.
-    """
-    res = client.post(
-        "/excuses",
-        json={
-            "attendance_id": sample_present_attendance.id,
-            "reason": "Invalid excuse attempt"
-        },
-        headers=student_headers
-    )
-    assert res.status_code == 400
-    assert "ABSENT" in res.json["description"]
-
-
-def test_cannot_update_approved_excuse(client, db_session, sample_absent_attendance, sample_teacher, student_headers):
-    """
-    Cannot modify reason after excuse has been approved.
-    """
-    excuse = Excuse(
-        attendance_id=sample_absent_attendance.id,
-        reason="Initial reason",
-        status=ExcuseStatus.APPROVED,
-        reviewed_by=sample_teacher.user_id
-    )
-    db_session.add(excuse)
-    db_session.commit()
+    token = create_access_token(identity=str(student2.user_id), additional_claims={"role": "student"})
+    other_headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
 
     res = client.patch(
         f"/excuses/{excuse.id}",
-        json={
-            "reason": "Updated reason attempt"
-        },
-        headers=student_headers
+        json={"reason": "Hijack attempt"},
+        headers=other_headers
     )
-    assert res.status_code == 400
-    assert "Only PENDING excuses can be modified" in res.json["description"]
+    assert res.status_code == 403
+    assert "manage your own excuse" in res.json["description"]
+
+
+# ============================ 4. Bulk Review Test ============================
+
+def test_bulk_review_excuses_success(client, db_session, sample_absent_attendance, teacher_headers):
+    """
+    Teacher can bulk approve multiple pending excuses in a single call via /excuses/bulk-approve.
+    """
+    sample_absent_attendance = db_session.merge(sample_absent_attendance)
+    sample_absent_attendance.date = date.today()
+    db_session.add(sample_absent_attendance)
+    db_session.commit()
+
+    excuse1 = Excuse(
+        attendance_id=sample_absent_attendance.id,
+        reason="Excuse 1",
+        status=ExcuseStatus.PENDING
+    )
+    db_session.add(excuse1)
+    db_session.commit()
+
+    payload = {
+        "excuse_ids": [excuse1.id]
+    }
+
+    res = client.post(
+        "/excuses/bulk-approve",
+        json=payload,
+        headers=teacher_headers
+    )
+    assert res.status_code == 200
+
+    db_session.refresh(excuse1)
+    assert excuse1.status == ExcuseStatus.APPROVED

@@ -3,25 +3,21 @@ from functools import wraps
 from flask import abort, current_app, g, jsonify
 
 
+# App/decorators.py
 def role_required(*allowed_roles):
-    """Allow access only to users with one of the allowed roles."""
-    def decorator(view_func):
-        @wraps(view_func)
+    def decorator(fn):
+        @wraps(fn)
         def wrapper(*args, **kwargs):
-            if not current_app.config.get("ADMIN_ACCESS_ENABLED", False):
-                abort(403)
-
-            user = getattr(g, "user", None)
-            if user is None:
-                return jsonify({"message": "Login required"}), 401
+            if not g.user:
+                abort(401, description="Authentication required")
             
-            role = getattr(user, "role", None)
+            # Extract string value if role is an Enum
+            user_role = g.user.role.value if hasattr(g.user.role, "value") else str(g.user.role)
+            allowed = [r.value if hasattr(r, "value") else str(r) for r in allowed_roles]
             
-            if role not in allowed_roles:
-                return jsonify({"message": "forbidden"}), 403
-
-            return view_func(*args, **kwargs)
-
+            if user_role.lower() not in [a.lower() for a in allowed]:
+                abort(403, description="Permission denied")
+                
+            return fn(*args, **kwargs)
         return wrapper
-
     return decorator
