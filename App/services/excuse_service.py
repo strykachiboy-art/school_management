@@ -8,6 +8,7 @@ from App.models.excuses import Excuse
 from App.models.attendance import Attendance
 from App.enums.excuse import ExcuseStatus
 from App.enums.attendance import AttendanceStatus
+from App.services.notification_service import notify_excuse_decision
 
 
 def _utcnow() -> datetime:
@@ -144,6 +145,7 @@ def approve_excuse(excuse_id: int, reviewer_id: int) -> Excuse:
     excuse.attendance.status = AttendanceStatus.EXCUSED
 
     db.session.commit()
+    notify_excuse_decision(excuse)
     return excuse
 
 
@@ -164,6 +166,7 @@ def reject_excuse(excuse_id: int, reviewer_id: int) -> Excuse:
     excuse.attendance.status = AttendanceStatus.ABSENT
 
     db.session.commit()
+    notify_excuse_decision(excuse)
     return excuse
 
 
@@ -183,6 +186,7 @@ def bulk_review_excuses(excuse_ids: list, decision: ExcuseStatus, reviewer_id: i
     not_found = [eid for eid in excuse_ids if eid not in found_ids]
 
     reviewed = []
+    reviewed_excuses = []
     skipped = []
     reviewed_at = _utcnow()
 
@@ -198,8 +202,12 @@ def bulk_review_excuses(excuse_ids: list, decision: ExcuseStatus, reviewer_id: i
             AttendanceStatus.EXCUSED if decision == ExcuseStatus.APPROVED else AttendanceStatus.ABSENT
         )
         reviewed.append(excuse.id)
+        reviewed_excuses.append(excuse)
 
     db.session.commit()
+
+    for excuse in reviewed_excuses:
+        notify_excuse_decision(excuse)
 
     return {
         "reviewed": reviewed,

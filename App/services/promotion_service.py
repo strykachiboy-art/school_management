@@ -219,7 +219,7 @@ def graduate_student(student_id, academic_session_id, remarks=None, decided_by=N
     return history
 
 
-def get_student_promotion_history(student_id):
+def get_student_promotion_history(student_id, page=1, per_page=20):
     student = db.session.get(Student, student_id)
     if student is None:
         return None
@@ -229,10 +229,24 @@ def get_student_promotion_history(student_id):
         .where(PromotionHistory.student_id == student_id)
         .order_by(PromotionHistory.created_at.asc())
     )
-    return db.session.scalars(stmt).all()
+
+    total = db.session.scalar(
+        db.select(db.func.count()).select_from(stmt.subquery())
+    )
+
+    paginated_stmt = stmt.offset((page - 1) * per_page).limit(per_page)
+    items = db.session.scalars(paginated_stmt).all()
+
+    return {
+        "items": items,
+        "page": page,
+        "per_page": per_page,
+        "total": total,
+        "total_pages": (total + per_page - 1) // per_page if total else 0,
+    }
 
 
-def get_session_promotions(academic_session_id):
+def get_session_promotions(academic_session_id, decision=None, classroom_id=None):
     session = db.session.get(AcademicSession, academic_session_id)
     if session is None:
         return None
@@ -240,8 +254,22 @@ def get_session_promotions(academic_session_id):
     stmt = (
         db.select(PromotionHistory)
         .where(PromotionHistory.academic_session_id == academic_session_id)
-        .order_by(PromotionHistory.created_at.asc())
     )
+
+    if decision is not None:
+        stmt = stmt.where(PromotionHistory.decision == decision)
+
+    if classroom_id is not None:
+        # Match either side of the transition — a session might filter on
+        # "which students moved through classroom X", from or to.
+        stmt = stmt.where(
+            db.or_(
+                PromotionHistory.from_classroom_id == classroom_id,
+                PromotionHistory.to_classroom_id == classroom_id,
+            )
+        )
+
+    stmt = stmt.order_by(PromotionHistory.created_at.asc())
     return db.session.scalars(stmt).all()
 
 

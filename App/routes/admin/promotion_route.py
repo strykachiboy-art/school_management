@@ -1,7 +1,8 @@
-from flask import Blueprint, jsonify, g, abort
+from flask import Blueprint, jsonify, g, abort, request
 
 from App.decorators import role_required
 from App.utils.helpers import validate_request
+from App.enums.promotion import PromotionDecision
 from App.requests.promotion_request import (
     PromotionEvaluationResponse,
     PromoteStudentRequest,
@@ -108,12 +109,24 @@ def student_promotion_history_route(student_id):
     if g.user and g.user.role == "student" and getattr(g.user.student_profile, "id", None) != student_id:
         abort(403, description="Students may only view their own promotion history")
 
-    history = get_student_promotion_history(student_id)
+    try:
+        page = max(1, int(request.args.get("page", 1)))
+        per_page = min(100, max(1, int(request.args.get("per_page", 20))))
+    except ValueError:
+        abort(400, description="page and per_page must be integers")
 
-    if history is None:
+    result = get_student_promotion_history(student_id, page=page, per_page=per_page)
+
+    if result is None:
         abort(404, description="Student not found")
 
-    serialized = [PromotionHistoryResponse.model_validate(h).model_dump() for h in history]
+    serialized = {
+        "items": [PromotionHistoryResponse.model_validate(h).model_dump() for h in result["items"]],
+        "page": result["page"],
+        "per_page": result["per_page"],
+        "total": result["total"],
+        "total_pages": result["total_pages"],
+    }
     return jsonify(serialized), 200
 
 
@@ -122,7 +135,30 @@ def student_promotion_history_route(student_id):
 @promotion_bp.route("/sessions/<int:academic_session_id>", methods=["GET"])
 @role_required("admin")
 def session_promotions_route(academic_session_id):
-    promotions = get_session_promotions(academic_session_id)
+    decision_param = request.args.get("decision")
+    classroom_id_param = request.args.get("classroom_id")
+
+    decision = None
+    if decision_param:
+        try:
+            decision = PromotionDecision(decision_param.lower())
+        except ValueError:
+            abort(
+                400,
+                description=f"Invalid decision '{decision_param}'. Must be one of: "
+                f"{', '.join(d.value for d in PromotionDecision)}",
+            )
+
+    classroom_id = None
+    if classroom_id_param:
+        try:
+            classroom_id = int(classroom_id_param)
+        except ValueError:
+            abort(400, description="classroom_id must be an integer")
+
+    promotions = get_session_promotions(
+        academic_session_id, decision=decision, classroom_id=classroom_id
+    )
 
     if promotions is None:
         abort(404, description="Academic session not found")
