@@ -11,7 +11,9 @@ from App.models.student import Student
 from App.models.subject import Subject
 from App.models.teacher import Teacher
 from App.models.user import User
+from App.models.timetable import Timetable
 from App.enums.attendance import AttendanceStatus
+from App.enums.day_of_week import DayOfWeek
 from App.models.attendance import Attendance
 from App.models.term import Term 
 
@@ -302,6 +304,36 @@ def make_result(app, student, exam):
     return _make
 
 
+@pytest.fixture
+def make_timetable(app, term, classroom, subject, teacher):
+    """Factory fixture for creating Timetable entries."""
+    def _make(
+        term_obj=term,
+        classroom_obj=classroom,
+        subject_obj=subject,
+        teacher_obj=teacher,
+        day_of_week=DayOfWeek.MONDAY,
+        start_time_val=time(8, 0),
+        end_time_val=time(9, 0),
+    ):
+        with app.app_context():
+            tt = Timetable(
+                term_id=term_obj.id,
+                classroom_id=classroom_obj.id,
+                subject_id=subject_obj.id,
+                teacher_id=teacher_obj.id,
+                day_of_week=day_of_week,
+                start_time=start_time_val,
+                end_time=end_time_val,
+            )
+            _db.session.add(tt)
+            _db.session.commit()
+            _db.session.refresh(tt)
+            _db.session.expunge(tt)
+            return tt
+    return _make
+
+
 # ----------------------------------------------------------------------
 # 4. Standard Model Fixtures
 # ----------------------------------------------------------------------
@@ -372,6 +404,12 @@ def exam(make_exam):
 @pytest.fixture
 def result(make_result):
     return make_result()
+
+
+@pytest.fixture
+def timetable(make_timetable):
+    """Standard timetable fixture for tests."""
+    return make_timetable()
 
 
 @pytest.fixture

@@ -13,5 +13,7 @@ from App.models.term import Term
 from App.models.attendance import Attendance
 from App.models.promotion_history import PromotionHistory
 from App.models.excuses import Excuse
+from App.models.password_reset_token import PasswordResetToken
+from App.models.timetable import Timetable
 
 
