@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, g, abort, request
 
 from App.decorators import role_required
+from App.enums.role import Role
 from App.utils.helpers import validate_request
 from App.enums.promotion import PromotionDecision
 from App.requests.promotion_request import (
@@ -27,7 +28,7 @@ promotion_bp = Blueprint("promotion", __name__, url_prefix="/promotions")
 # ====================================== evaluate_promotion_route ===============================================
 
 @promotion_bp.route("/students/<int:student_id>/sessions/<int:academic_session_id>/evaluate", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def evaluate_promotion_route(student_id, academic_session_id):
     evaluation = evaluate_student_promotion(student_id, academic_session_id)
 
@@ -41,7 +42,7 @@ def evaluate_promotion_route(student_id, academic_session_id):
 # ====================================== promote_student_route ===============================================
 
 @promotion_bp.route("/students/<int:student_id>/sessions/<int:academic_session_id>/promote", methods=["POST"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 @validate_request(PromoteStudentRequest)
 def promote_student_route(data: PromoteStudentRequest, student_id, academic_session_id):
     try:
@@ -69,7 +70,7 @@ def promote_student_route(data: PromoteStudentRequest, student_id, academic_sess
 # ====================================== repeat_student_route ===============================================
 
 @promotion_bp.route("/students/<int:student_id>/sessions/<int:academic_session_id>/repeat", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(RepeatStudentRequest)
 def repeat_student_route(data: RepeatStudentRequest, student_id, academic_session_id):
     history = repeat_student_service(
@@ -89,7 +90,7 @@ def repeat_student_route(data: RepeatStudentRequest, student_id, academic_sessio
 # ====================================== graduate_student_route ===============================================
 
 @promotion_bp.route("/students/<int:student_id>/sessions/<int:academic_session_id>/graduate", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(GraduateStudentRequest)
 def graduate_student_route(data: GraduateStudentRequest, student_id, academic_session_id):
     history = graduate_student_service(
@@ -109,7 +110,7 @@ def graduate_student_route(data: GraduateStudentRequest, student_id, academic_se
 # ====================================== student_promotion_history_route ===============================================
 
 @promotion_bp.route("/students/<int:student_id>/history", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def student_promotion_history_route(student_id):
     if g.user and g.user.role == "student" and getattr(g.user.student_profile, "id", None) != student_id:
         abort(403, description="Students may only view their own promotion history")
@@ -138,7 +139,7 @@ def student_promotion_history_route(student_id):
 # ====================================== session_promotions_route ===============================================
 
 @promotion_bp.route("/sessions/<int:academic_session_id>", methods=["GET"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def session_promotions_route(academic_session_id):
     decision_param = request.args.get("decision")
     classroom_id_param = request.args.get("classroom_id")
@@ -175,7 +176,7 @@ def session_promotions_route(academic_session_id):
 # ====================================== bulk_promote_session_route ===============================================
 
 @promotion_bp.route("/sessions/<int:academic_session_id>/bulk-promote", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(BulkPromoteRequest)
 def bulk_promote_session_route(data: BulkPromoteRequest, academic_session_id):
     try:

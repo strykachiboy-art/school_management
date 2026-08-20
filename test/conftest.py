@@ -12,6 +12,7 @@ from App.models.subject import Subject
 from App.models.teacher import Teacher
 from App.models.user import User
 from App.models.timetable import Timetable
+from App.models.parent_guardian import ParentGuardian
 from App.enums.attendance import AttendanceStatus
 from App.enums.day_of_week import DayOfWeek
 from App.models.attendance import Attendance
@@ -252,6 +253,34 @@ def make_student(app):
 
 
 @pytest.fixture
+def make_parent(app):
+    def _make(suffix="1"):
+        with app.app_context():
+            user = User(
+                username=f"parent_{suffix}",
+                email=f"parent_{suffix}@example.com",
+                password="hashed-placeholder",
+                role="parent",
+            )
+            _db.session.add(user)
+            _db.session.commit()
+
+            parent = ParentGuardian(
+                user_id=user.id,
+                occupation=f"Profession {suffix}",
+                email=f"parent_{suffix}@example.com",
+                phone="08012345678",
+                address="123 Test Street"
+            )
+            _db.session.add(parent)
+            _db.session.commit()
+            _db.session.refresh(parent)
+            _db.session.expunge(parent)
+            return parent
+    return _make
+
+
+@pytest.fixture
 def make_classroom(app):
     def _make(suffix="1"):
         with app.app_context():
@@ -361,6 +390,11 @@ def student(make_student):
 @pytest.fixture
 def student2(make_student):
     return make_student("2")
+
+
+@pytest.fixture
+def parent(make_parent):
+    return make_parent("1")
 
 
 @pytest.fixture
@@ -497,6 +531,22 @@ def student_headers(app, student):
         token = create_access_token(
             identity=str(student.user_id),
             additional_claims={"role": "student"},
+        )
+
+    return {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/json",
+    }
+
+
+@pytest.fixture(scope="function")
+def parent_headers(app, parent):
+    from flask_jwt_extended import create_access_token
+
+    with app.app_context():
+        token = create_access_token(
+            identity=str(parent.user_id),
+            additional_claims={"role": "parent"},
         )
 
     return {

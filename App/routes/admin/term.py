@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request, abort
+from App.enums.role import Role
 from App.decorators import role_required
 from App.utils.helpers import validate_request
 
@@ -25,7 +26,7 @@ term_bp = Blueprint("term", __name__, url_prefix="/terms")
 # ====================================== Create Term ===============================================
 
 @term_bp.route("/create", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(TermCreateRequest)
 def create_term_route(data: TermCreateRequest):
     term = create_term(data)
@@ -36,7 +37,7 @@ def create_term_route(data: TermCreateRequest):
 # ====================================== Get All Terms ===============================================
 
 @term_bp.route("", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def get_all_terms_route():
     search = request.args.get("search", "", type=str)
     page = request.args.get("page", 1, type=int)
@@ -55,7 +56,7 @@ def get_all_terms_route():
 # ====================================== Get Term ===============================================
 
 @term_bp.route("/<int:term_id>", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def get_term_route(term_id: int):
     term = get_term_by_id(term_id)
     if term is None:
@@ -68,7 +69,7 @@ def get_term_route(term_id: int):
 # ====================================== Update Term Details ===============================================
 
 @term_bp.route("/<int:term_id>/edit", methods=["PUT", "PATCH"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(TermUpdateRequest)
 def update_term_route(data: TermUpdateRequest, term_id: int):
     term = update_term(data, term_id)
@@ -82,7 +83,7 @@ def update_term_route(data: TermUpdateRequest, term_id: int):
 # ====================================== Reassign Academic Session ===============================================
 
 @term_bp.route("/<int:term_id>/reassign-session", methods=["PATCH", "POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(TermReassignSessionRequest)
 def reassign_term_session_route(data: TermReassignSessionRequest, term_id: int):
     term = reassign_term_session(term_id, data.academic_session_id)
@@ -96,7 +97,7 @@ def reassign_term_session_route(data: TermReassignSessionRequest, term_id: int):
 # ====================================== Delete Term ===============================================
 
 @term_bp.route("/<int:term_id>", methods=["DELETE"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def delete_term_route(term_id: int):
     deleted = delete_term(term_id)
     if not deleted:
@@ -108,7 +109,7 @@ def delete_term_route(term_id: int):
 # ====================================== Activate Term ===============================================
 
 @term_bp.route("/<int:term_id>/activate", methods=["PATCH"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def activate_term_route(term_id: int):
     term = activate_term(term_id)
     if term is None:

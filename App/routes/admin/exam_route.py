@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request, abort
 from sqlalchemy.exc import IntegrityError
 from App.decorators import role_required
+from App.enums.role import Role
 from App.utils.helpers import validate_request
 from App.requests.exam_request import ExamCreateRequest, ExamResponse
 from App.services.exam_services import (
@@ -18,7 +19,7 @@ exam_bp = Blueprint('exam', __name__, url_prefix="/exams")
 
 # ================================= Create Exam Route ==================================
 @exam_bp.route("/create", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(ExamCreateRequest)
 def create_exam_route(data: ExamCreateRequest):
     try:
@@ -36,7 +37,7 @@ def create_exam_route(data: ExamCreateRequest):
 
 # ================================== Get All Exams Route ==================================
 @exam_bp.route("/", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_exams():
     try:
         search = request.args.get("search", "", type=str)
@@ -65,7 +66,7 @@ def get_exams():
 
 # =============================== Get Exam by ID Route ===============================
 @exam_bp.route("/<int:exam_id>", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_exam(exam_id):
     exam = get_exam_by_id(exam_id)
     if exam is None:
@@ -77,7 +78,7 @@ def get_exam(exam_id):
 
 # =============================== Update Exam Route =====================================
 @exam_bp.route("/<int:exam_id>/edit", methods=["PUT", "PATCH"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(ExamCreateRequest)
 def update_exam_route(data: ExamCreateRequest, exam_id):
     exam = get_exam_by_id(exam_id)
@@ -92,7 +93,7 @@ def update_exam_route(data: ExamCreateRequest, exam_id):
 
 # =============================== Remove Exam Route =====================================
 @exam_bp.route("/<int:exam_id>", methods=["DELETE"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def remove_exam(exam_id):
     deleted = delete_exam(exam_id)
     

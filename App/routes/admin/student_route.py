@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request, abort
+from App.enums.role import Role
 from App.decorators import role_required
 from App.utils.helpers import validate_request
 from App.requests.student_request import StudentCreateRequest, StudentResponse
@@ -23,7 +24,7 @@ student_bp = Blueprint("student", __name__, url_prefix="/students")
 # ====================================== create_student ===============================================
 
 @student_bp.route("/create", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(StudentCreateRequest)
 def create_student(data: StudentCreateRequest):
     student = create_students(data)
@@ -35,7 +36,7 @@ def create_student(data: StudentCreateRequest):
 # ====================================== get_all_student ===============================================
 
 @student_bp.route("", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def get_all_student():
     search = request.args.get("search", "", type=str)
     classroom_id = request.args.get("classroom_id", None, type=int)
@@ -65,7 +66,7 @@ def get_all_student():
 # ====================================== get_student ===============================================
 
 @student_bp.route("/<int:student_id>", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_student(student_id):
     student = get_student_by_id(student_id)
     if student is None:
@@ -78,7 +79,7 @@ def get_student(student_id):
 # ====================================== update_student ===============================================
 
 @student_bp.route("/<int:student_id>/edit", methods=["PUT", "PATCH"])
-@role_required("admin")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 @validate_request(StudentCreateRequest)
 def update_student(data: StudentCreateRequest, student_id):
     student = get_student_by_id(student_id)
@@ -94,7 +95,7 @@ def update_student(data: StudentCreateRequest, student_id):
 # ====================================== delete_student ===============================================
 
 @student_bp.route("/<int:student_id>", methods=["DELETE"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def delete_student(student_id):
     deleted = delete_student_service(student_id)
 
@@ -108,7 +109,7 @@ def delete_student(student_id):
 # ====================================== add_student_to_classroom ===============================================
 
 @student_bp.route("/<int:student_id>/classroom/<int:classroom_id>", methods=["PATCH"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def add_to_classroom(student_id, classroom_id):
     student = add_student_to_classroom(student_id, classroom_id)
     if student is None:
@@ -121,7 +122,7 @@ def add_to_classroom(student_id, classroom_id):
 # ====================================== remove_student_from_classroom ===============================================
 
 @student_bp.route("/<int:student_id>/classroom", methods=["DELETE"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def remove_from_classroom(student_id):
     student = delete_student_from_classroom(student_id)
     if student is None:

@@ -1,8 +1,31 @@
-from flask import Blueprint, jsonify, request, g
+from flask import Blueprint, jsonify, request, g, abort
 from pydantic import ValidationError
 from App.decorators import role_required
+from App.enums.role import Role
+from App.models.parent_guardian import ParentGuardian, ParentGuardianStudent
 
 attendance_bp = Blueprint("attendance", __name__, url_prefix="/attendances")
+
+
+def _parent_owns_student(user_id: int, student_id: int) -> bool:
+    """Check the current parent/guardian is actually linked to this student."""
+    guardian = ParentGuardian.query.filter_by(user_id=user_id).first()
+    if not guardian:
+        return False
+    link = ParentGuardianStudent.query.filter_by(
+        parent_guardian_id=guardian.id, student_id=student_id
+    ).first()
+    return link is not None
+
+
+def _enforce_attendance_ownership(student_id: int):
+    """Abort 403 if the caller is a student/parent without a claim on this student_id."""
+    if g.user.role == Role.STUDENT:
+        if getattr(g.user.student_profile, "id", None) != student_id:
+            abort(403, description="You can only view your own attendance.")
+    elif g.user.role == Role.PARENT:
+        if not _parent_owns_student(g.user.id, student_id):
+            abort(403, description="You can only view your own child's attendance.")
 
 from App.requests.attendance import (
     AttendanceCreateRequest,
@@ -38,7 +61,7 @@ def serialize_attendance(attendance):
 # ============================ 1. Create Single Attendance ============================
 
 @attendance_bp.route("", methods=["POST"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def create_attendance():
     try:
         data = AttendanceCreateRequest.model_validate(request.json)
@@ -52,7 +75,7 @@ def create_attendance():
 # ============================ 2. Mark Classroom Attendance (Bulk) ============================
 
 @attendance_bp.route("/classrooms/<int:classroom_id>/mark", methods=["POST"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def mark_classroom_attendance(classroom_id: int):
     try:
         payload = MarkClassroomAttendanceRequest.model_validate(request.json)
@@ -75,17 +98,19 @@ def mark_classroom_attendance(classroom_id: int):
 # ============================ 3. Get Single Attendance ============================
 
 @attendance_bp.route("/<int:attendance_id>", methods=["GET"])
-@role_required("admin", "teacher", "student", "parent")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT)
 def get_attendance_by_id(attendance_id: int):
     record = get_attendance_by_id_service(attendance_id)
+    _enforce_attendance_ownership(record.student_id)
     return jsonify(serialize_attendance(record)), 200
 
 
 # ============================ 4. Get Student Attendance History ============================
 
 @attendance_bp.route("/students/<int:student_id>", methods=["GET"])
-@role_required("admin", "teacher", "student", "parent")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT)
 def get_student_attendance(student_id: int):
+    _enforce_attendance_ownership(student_id)
     term_id = request.args.get("term_id", type=int)
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
@@ -102,7 +127,7 @@ def get_student_attendance(student_id: int):
 # ============================ 5. Get Classroom Attendance ============================
 
 @attendance_bp.route("/classrooms/<int:classroom_id>", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def get_classroom_attendance(classroom_id: int):
     date_val = request.args.get("date")
     term_id = request.args.get("term_id", type=int)
@@ -118,7 +143,7 @@ def get_classroom_attendance(classroom_id: int):
 # ============================ 6. Get Term Attendance ============================
 
 @attendance_bp.route("/terms/<int:term_id>", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def get_term_attendance(term_id: int):
     records = get_term_attendance_service(term_id)
     return jsonify(serialize_attendance(records)), 200
@@ -127,7 +152,7 @@ def get_term_attendance(term_id: int):
 # ============================ 7. Update Attendance ============================
 
 @attendance_bp.route("/<int:attendance_id>", methods=["PATCH"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def update_attendance(attendance_id: int):
     try:
         data = AttendanceUpdateRequest.model_validate(request.json)
@@ -145,7 +170,7 @@ def update_attendance(attendance_id: int):
 # ============================ 8. Delete Attendance ============================
 
 @attendance_bp.route("/<int:attendance_id>", methods=["DELETE"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def delete_attendance(attendance_id: int):
     delete_attendance_service(attendance_id)
     return jsonify({"message": f"Attendance record {attendance_id} deleted successfully."}), 200
@@ -154,8 +179,9 @@ def delete_attendance(attendance_id: int):
 # ============================ 9. Get Attendance Summary ============================
 
 @attendance_bp.route("/students/<int:student_id>/summary", methods=["GET"])
-@role_required("admin", "teacher", "student", "parent")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT)
 def get_attendance_summary(student_id: int):
+    _enforce_attendance_ownership(student_id)
     term_id = request.args.get("term_id", type=int)
     summary = get_attendance_summary_service(
         student_id=student_id, term_id=term_id

@@ -1,6 +1,8 @@
 from flask import Blueprint, jsonify, request, abort
 from App.decorators import role_required
 from App.utils.helpers import validate_request
+from App.enums.role import Role
+
 from App.requests.academic_session import (
     AcademicSessionCreateRequest,
     AcademicSessionUpdateRequest,
@@ -22,7 +24,7 @@ academic_session_bp = Blueprint("academic_session", __name__, url_prefix="/acade
 # ====================================== create_academic_session ===============================================
 
 @academic_session_bp.route("/create", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(AcademicSessionCreateRequest)
 def create_session(data: AcademicSessionCreateRequest):
     session = create_academic_session(data)
@@ -33,7 +35,7 @@ def create_session(data: AcademicSessionCreateRequest):
 # ====================================== get_all_academic_sessions ===============================================
 
 @academic_session_bp.route("", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def get_all_sessions():
     search = request.args.get("search", "", type=str)
     page = request.args.get("page", 1, type=int)
@@ -52,7 +54,7 @@ def get_all_sessions():
 # ====================================== get_academic_session ===============================================
 
 @academic_session_bp.route("/<int:session_id>", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def get_session(session_id):
     session = get_academic_session(session_id)
     if session is None:
@@ -65,7 +67,7 @@ def get_session(session_id):
 # ====================================== update_academic_session ===============================================
 
 @academic_session_bp.route("/<int:session_id>/edit", methods=["PUT", "PATCH"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(AcademicSessionUpdateRequest)
 def update_session(data: AcademicSessionUpdateRequest, session_id):
     session = update_academic_session(data, session_id)
@@ -79,7 +81,7 @@ def update_session(data: AcademicSessionUpdateRequest, session_id):
 # ====================================== delete_academic_session ===============================================
 
 @academic_session_bp.route("/<int:session_id>", methods=["DELETE"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def delete_academic_session_route(session_id):
     deleted = delete_session(session_id)
     if not deleted:
@@ -91,7 +93,7 @@ def delete_academic_session_route(session_id):
 # ====================================== activate_academic_session ===============================================
 
 @academic_session_bp.route("/<int:session_id>/activate", methods=["PATCH"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def activate_session(session_id):
     session = activate_academic_session(session_id)
     if session is None:

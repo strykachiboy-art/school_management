@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from App.decorators import role_required
+from App.enums.role import Role
 
 from App.services.timetable_service import (
     create_timetable,
@@ -31,7 +32,7 @@ def _serialize_timetable(t):
 
 @timetable_bp.route("", methods=["POST"])
 @jwt_required()
-@role_required("admin")
+@role_required(Role.ADMIN)
 def create_timetable_route():
     json_data = request.get_json() or {}
     
@@ -50,7 +51,7 @@ def create_timetable_route():
 
 @timetable_bp.route("/<int:timetable_id>", methods=["GET"])
 @jwt_required()
-@role_required("admin")
+@role_required(Role.ADMIN)
 def get_timetable_route(timetable_id):
     timetable = get_timetable(timetable_id)
     return jsonify(_serialize_timetable(timetable)), 200
@@ -58,7 +59,7 @@ def get_timetable_route(timetable_id):
 
 @timetable_bp.route("", methods=["GET"])
 @jwt_required()
-@role_required("admin")
+@role_required(Role.ADMIN)
 def get_timetables_route():
     search = request.args.get("search", "")
     term_id = request.args.get("term_id", type=int)
@@ -89,7 +90,7 @@ def get_timetables_route():
 
 @timetable_bp.route("/<int:timetable_id>", methods=["PUT"])
 @jwt_required()
-@role_required("admin")
+@role_required(Role.ADMIN)
 def update_timetable_route(timetable_id):
     json_data = request.get_json() or {}
     
@@ -109,7 +110,7 @@ def update_timetable_route(timetable_id):
 
 @timetable_bp.route("/<int:timetable_id>", methods=["DELETE"])
 @jwt_required()
-@role_required("admin")
+@role_required(Role.ADMIN)
 def delete_timetable_route(timetable_id):
     delete_timetable(timetable_id)
     return jsonify({"message": "Timetable entry deleted successfully."}), 200
@@ -117,7 +118,7 @@ def delete_timetable_route(timetable_id):
 
 @timetable_bp.route("/teacher/<int:teacher_id>", methods=["GET"])
 @jwt_required()
-@role_required("admin")
+@role_required(Role.ADMIN)
 def get_teacher_timetable_route(teacher_id):
     term_id = request.args.get("term_id", type=int)
     day_of_week = request.args.get("day_of_week")
@@ -127,7 +128,7 @@ def get_teacher_timetable_route(teacher_id):
 
 @timetable_bp.route("/classroom/<int:classroom_id>", methods=["GET"])
 @jwt_required()
-@role_required("admin")
+@role_required(Role.ADMIN)
 def get_classroom_timetable_route(classroom_id):
     term_id = request.args.get("term_id", type=int)
     day_of_week = request.args.get("day_of_week")

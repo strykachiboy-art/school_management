@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request, abort
 from App.decorators import role_required
+from App.enums.role import Role
 from App.utils.helpers import validate_request
 from App.requests.teacher_request import TeacherCreateRequest, TeacherResponse
 from App.services.teacher_services import (
@@ -22,7 +23,7 @@ teacher_bp = Blueprint("teacher", __name__, url_prefix="/teachers")
 # ====================================== create_teacher ===============================================
 
 @teacher_bp.route("/create", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(TeacherCreateRequest)
 def create_teacher(data: TeacherCreateRequest):
     teacher = create_teachers(data)
@@ -34,7 +35,7 @@ def create_teacher(data: TeacherCreateRequest):
 # ====================================== get_all_teacher ===============================================
 
 @teacher_bp.route("", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_all_teacher():
     search = request.args.get("search", "", type=str)
     teacher_id = request.args.get("id", None, type=int)
@@ -67,7 +68,7 @@ def get_all_teacher():
 # ====================================== get_teacher ===============================================
 
 @teacher_bp.route("/<int:teacher_id>", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_teacher(teacher_id):
     teacher = get_teacher_by_id(teacher_id)
     if teacher is None:
@@ -80,7 +81,7 @@ def get_teacher(teacher_id):
 # ====================================== update_teacher ===============================================
 
 @teacher_bp.route("/<int:teacher_id>/edit", methods=["PUT", "PATCH"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(TeacherCreateRequest)
 def update_teacher(data: TeacherCreateRequest, teacher_id):
     teacher = get_teacher_by_id(teacher_id)
@@ -96,7 +97,7 @@ def update_teacher(data: TeacherCreateRequest, teacher_id):
 # ====================================== delete_teacher ===============================================
 
 @teacher_bp.route("/<int:teacher_id>", methods=["DELETE"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def delete_teacher(teacher_id):
     deleted = delete_teacher_service(teacher_id)
 
@@ -109,7 +110,7 @@ def delete_teacher(teacher_id):
 # ====================================== get_classroom_details ===============================================
 
 @teacher_bp.route("/classrooms/<int:classroom_id>", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_classroom_details(classroom_id):
     classroom = get_classroom(classroom_id)
     if classroom is None:

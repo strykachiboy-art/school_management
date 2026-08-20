@@ -48,6 +48,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     from App.routes.admin.promotion_route import promotion_bp
     from App.routes.admin.excuse_route import excuse_bp
     from App.routes.admin.timetable import timetable_bp
+    from App.routes.admin.parent_guardian import parent_guardian_bp
     
     
 
@@ -68,6 +69,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     app.register_blueprint(promotion_bp, url_prefix="/promotions")
     app.register_blueprint(excuse_bp, url_prefix="/excuses")
     app.register_blueprint(timetable_bp, url_prefix="/timetables")
+    app.register_blueprint(parent_guardian_bp, url_prefix="/parent-guardians")
     
     register_error_handlers(app)
     
@@ -97,3 +99,5 @@ def create_app(config: Optional[dict] = None) -> Flask:
     return app
 
 __all__ = ["create_app", "db"]
+
+

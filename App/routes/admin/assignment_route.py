@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request, abort
 from App.decorators import role_required
+from App.enums.role import Role
 from App.requests.subject_request import SubjectResponse
 from App.services.assignment_service import (
     assign_subject_to_teachers,
@@ -28,7 +29,7 @@ def _get_ids_from_request(key):
 
 # ====================================== Teacher assignment routes ===============================================
 @ass_bp.route("/subjects/<int:subject_id>/assign/teachers", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def assign_subject_to_teachers_route(subject_id):
     teacher_ids = _get_ids_from_request("teacher_ids")
 
@@ -43,7 +44,7 @@ def assign_subject_to_teachers_route(subject_id):
 # ====================================== remove_subject_from_teachers_route ===============================================
 
 @ass_bp.route("/subjects/<int:subject_id>/remove/teachers", methods=["DELETE"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def remove_subject_from_teachers_route(subject_id):
     teacher_ids = _get_ids_from_request("teacher_ids")
 
@@ -58,7 +59,7 @@ def remove_subject_from_teachers_route(subject_id):
 # ====================================== get_teacher_subjects_route ===============================================
 
 @ass_bp.route("/teachers/<int:teacher_id>/subjects", methods=["GET"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def get_teacher_subjects_route(teacher_id):
     try:
         subjects = get_subjects_for_teacher(teacher_id)
@@ -72,7 +73,7 @@ def get_teacher_subjects_route(teacher_id):
 # ====================================== assign_subject_to_students_route ===============================================
 
 @ass_bp.route("/subjects/<int:subject_id>/assign/students", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def assign_subject_to_students_route(subject_id):
     student_ids = _get_ids_from_request("student_ids")
 
@@ -87,7 +88,7 @@ def assign_subject_to_students_route(subject_id):
 # ====================================== remove_subject_from_students_route ===============================================
 
 @ass_bp.route("/subjects/<int:subject_id>/remove/students", methods=["DELETE"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def remove_subject_from_students_route(subject_id):
     student_ids = _get_ids_from_request("student_ids")
 
@@ -100,7 +101,7 @@ def remove_subject_from_students_route(subject_id):
 
 
 @ass_bp.route("/students/<int:student_id>/subjects", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_student_subjects_route(student_id):
     try:
         subjects = get_subjects_for_student(student_id)
@@ -114,7 +115,7 @@ def get_student_subjects_route(student_id):
 # ====================================== Classroom assignment routes ===============================================
 
 @ass_bp.route("/subjects/<int:subject_id>/assign/classrooms", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def assign_subject_to_classrooms_route(subject_id):
     classroom_ids = _get_ids_from_request("classroom_ids")
 
@@ -128,7 +129,7 @@ def assign_subject_to_classrooms_route(subject_id):
 # ====================================== remove_subject_from_classrooms_route ===============================================
 
 @ass_bp.route("/subjects/<int:subject_id>/remove/classrooms", methods=["DELETE"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def remove_subject_from_classrooms_route(subject_id):
     classroom_ids = _get_ids_from_request("classroom_ids")
 
@@ -143,7 +144,7 @@ def remove_subject_from_classrooms_route(subject_id):
 # ====================================== get_classroom_subjects_route ===============================================
 
 @ass_bp.route("/classrooms/<int:classroom_id>/subjects", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_classroom_subjects_route(classroom_id):
     try:
         subjects = get_subjects_for_classroom(classroom_id)

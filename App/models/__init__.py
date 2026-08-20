@@ -15,6 +15,4 @@ from App.models.promotion_history import PromotionHistory
 from App.models.excuses import Excuse
 from App.models.password_reset_token import PasswordResetToken
 from App.models.timetable import Timetable
-from App.models.parent_guardian import ParentGuardian
-from App.models.parent_guardian_student import ParentGuardianStudent
-
+from App.models.parent_guardian import ParentGuardian, ParentGuardianStudent

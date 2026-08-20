@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request, abort
 from App.decorators import role_required
+from App.enums.role import Role
 from App.utils.helpers import validate_request
 from App.requests.subject_request import SubjectCreateRequest, SubjectResponse
 from App.services.subject_services import (
@@ -18,7 +19,7 @@ subject_bp = Blueprint("subject", __name__, url_prefix="/subjects")
 # ====================================== create_subject_route ===============================================
 
 @subject_bp.route("/create", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(SubjectCreateRequest)
 def create_subject_route(data: SubjectCreateRequest):
     subject = create_subject(data)
@@ -33,7 +34,7 @@ def create_subject_route(data: SubjectCreateRequest):
 # ====================================== get_subjects ===============================================
 
 @subject_bp.route("", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_subjects():
     search = request.args.get("search", "", type=str)
 
@@ -57,7 +58,7 @@ def get_subjects():
 # ====================================== get_subject_detail ===============================================
 
 @subject_bp.route("/<int:subject_id>", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_subject_detail(subject_id):
     subject = get_subject(subject_id)
     if subject is None:
@@ -70,7 +71,7 @@ def get_subject_detail(subject_id):
 # ====================================== update_subject_route ===============================================
 
 @subject_bp.route("/<int:subject_id>/edit", methods=["PUT", "PATCH"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(SubjectCreateRequest)
 def update_subject_route(data: SubjectCreateRequest, subject_id):
     subject = get_subject(subject_id)
@@ -86,7 +87,7 @@ def update_subject_route(data: SubjectCreateRequest, subject_id):
 # ====================================== delete_subject_route ===============================================
 
 @subject_bp.route("/<int:subject_id>", methods=["DELETE"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def delete_subject_route(subject_id):
     deleted = delete_subject(subject_id)
 

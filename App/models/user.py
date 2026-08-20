@@ -1,5 +1,5 @@
 from App.extensions import db
-
+from App.enums.role import Role
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -8,7 +8,7 @@ class User(db.Model):
     username = db.Column(db.String(30), unique=True, nullable=False)
     email = db.Column(db.String(255), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(50), nullable=False, default="student")
+    role = db.Column(db.String(50), nullable=False, default=Role.STUDENT)
     
     password_reset_token = db.relationship("PasswordResetToken", 
                                            back_populates = "user", 

@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request, abort, flash, redirect, url_for
 from sqlalchemy.exc import IntegrityError
 
 from App.decorators import role_required
+from App.enums.role import Role
 from App.utils.helpers import validate_request
 from App.requests.result_request import ResultCreateRequest, ResultResponse
 
@@ -19,7 +20,7 @@ result_bp = Blueprint("result", __name__, url_prefix="/results")
 
 # ================================= Create Result Route ==================================
 @result_bp.route("/create", methods=["POST"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 @validate_request(ResultCreateRequest)
 def create_result_route(data: ResultCreateRequest):
     created_result = create_result(
@@ -34,7 +35,7 @@ def create_result_route(data: ResultCreateRequest):
 
 # ============================ Get All Results Route ============================
 @result_bp.route("/", methods=["GET"])  
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def get_all_results_route(): 
     results = get_all_result_service()
 
@@ -44,7 +45,7 @@ def get_all_results_route():
 
 # ============================ Get Result by ID Route ============================
 @result_bp.route("/<int:result_id>", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_result_route(result_id):
     result = get_result_by_id(result_id)
     
@@ -57,7 +58,7 @@ def get_result_route(result_id):
 
 # ============================ Delete Result Route ============================
 @result_bp.route("/<int:result_id>/delete", methods=["DELETE"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def delete_result_route(result_id):
     deleted = delete_result(result_id)
     
@@ -69,7 +70,7 @@ def delete_result_route(result_id):
 
 # ============================ Search Result Route ============================
 @result_bp.route("/search", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def search_result_route():
     try:
         student_id = request.args.get("student_id", type=int)

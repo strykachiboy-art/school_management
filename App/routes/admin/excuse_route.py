@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request, g, abort
 from pydantic import ValidationError
 
 from App.decorators import role_required
+from App.enums.role import Role
 from App.requests.excuse_request import ExcuseCreateRequest, ExcuseUpdateRequest, ExcuseResponse, BulkExcuseReviewRequest
 from App.services import excuse_service
 from App.enums.excuse import ExcuseStatus
@@ -17,7 +18,7 @@ def _current_student_id() -> int:
 
 
 @excuse_bp.route("", methods=["POST"])
-@role_required("student")
+@role_required(Role.STUDENT)
 def create_excuse():
     try:
         data = ExcuseCreateRequest.model_validate(request.get_json() or {})
@@ -33,14 +34,14 @@ def create_excuse():
 
 
 @excuse_bp.route("/<int:excuse_id>", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_excuse(excuse_id: int):
     excuse = excuse_service.get_excuse(excuse_id)
     return jsonify(ExcuseResponse.model_validate(excuse).model_dump()), 200
 
 
 @excuse_bp.route("", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_excuses():
     student_id = request.args.get("student_id", type=int)
     term_id = request.args.get("term_id", type=int)
@@ -63,7 +64,7 @@ def get_excuses():
 
 
 @excuse_bp.route("/<int:excuse_id>", methods=["PATCH"])
-@role_required("student")
+@role_required(Role.STUDENT)
 def update_excuse(excuse_id: int):
     try:
         data = ExcuseUpdateRequest.model_validate(request.get_json() or {})
@@ -79,7 +80,7 @@ def update_excuse(excuse_id: int):
 
 
 @excuse_bp.route("/<int:excuse_id>", methods=["DELETE"])
-@role_required("student")
+@role_required(Role.STUDENT)
 def delete_excuse(excuse_id: int):
     excuse_service.delete_excuse(
         excuse_id=excuse_id,
@@ -89,7 +90,7 @@ def delete_excuse(excuse_id: int):
 
 
 @excuse_bp.route("/<int:excuse_id>/approve", methods=["POST"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def approve_excuse(excuse_id: int):
     excuse = excuse_service.approve_excuse(
         excuse_id=excuse_id,
@@ -99,7 +100,7 @@ def approve_excuse(excuse_id: int):
 
 
 @excuse_bp.route("/<int:excuse_id>/reject", methods=["POST"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def reject_excuse(excuse_id: int):
     excuse = excuse_service.reject_excuse(
         excuse_id=excuse_id,
@@ -109,7 +110,7 @@ def reject_excuse(excuse_id: int):
 
 
 @excuse_bp.route("/bulk-approve", methods=["POST"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def bulk_approve_excuses():
     try:
         data = BulkExcuseReviewRequest.model_validate(request.get_json() or {})
@@ -125,7 +126,7 @@ def bulk_approve_excuses():
 
 
 @excuse_bp.route("/bulk-reject", methods=["POST"])
-@role_required("admin", "teacher")
+@role_required(Role.ADMIN, Role.TEACHER)
 def bulk_reject_excuses():
     try:
         data = BulkExcuseReviewRequest.model_validate(request.get_json() or {})

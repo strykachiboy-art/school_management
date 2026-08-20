@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request, abort
 from App.decorators import role_required
 from App.utils.helpers import validate_request
+from App.enums.role import Role
 from App.requests.classroom_request import (
     ClassroomCreateRequest,
     ClassroomResponse,
@@ -21,7 +22,7 @@ classroom_bp = Blueprint("classroom", __name__, url_prefix="/classrooms")
 # ====================================== Classroom assignment routes ===============================================
 
 @classroom_bp.route("/create", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(ClassroomCreateRequest)
 def create_classroom_route(data: ClassroomCreateRequest):
     classroom = create_classroom(data)
@@ -35,7 +36,7 @@ def create_classroom_route(data: ClassroomCreateRequest):
 # ====================================== get_all_classrooms_route ===============================================
 
 @classroom_bp.route("", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_all_classrooms_route():
     if request.args.get("list") == "true":
         classrooms = get_all_classroom_list()
@@ -59,7 +60,7 @@ def get_all_classrooms_route():
 # ====================================== get_classroom_detail routes ===============================================
 
 @classroom_bp.route("/<int:classroom_id>", methods=["GET"])
-@role_required("admin", "teacher", "student")
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_classroom_detail(classroom_id):
     classroom = get_classroom(classroom_id)
     if classroom is None:
@@ -72,7 +73,7 @@ def get_classroom_detail(classroom_id):
 # ====================================== update_classroom_route ===============================================
 
 @classroom_bp.route("/<int:classroom_id>/edit", methods=["PUT", "PATCH"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(ClassroomCreateRequest)
 def update_classroom_route(data: ClassroomCreateRequest, classroom_id):
     classroom = get_classroom(classroom_id)
@@ -88,7 +89,7 @@ def update_classroom_route(data: ClassroomCreateRequest, classroom_id):
 # ====================================== bulk_assign_students_route ===============================================
 
 @classroom_bp.route("/<int:classroom_id>/students/bulk", methods=["POST"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 @validate_request(BulkAssignStudentsRequest)
 def bulk_assign_students_route(data: BulkAssignStudentsRequest, classroom_id):
     result = bulk_assign_students_service(classroom_id, data.student_ids)
@@ -102,7 +103,7 @@ def bulk_assign_students_route(data: BulkAssignStudentsRequest, classroom_id):
 # ====================================== delete_classroom_route ===============================================
 
 @classroom_bp.route("/<int:classroom_id>", methods=["DELETE"])
-@role_required("admin")
+@role_required(Role.ADMIN)
 def delete_classroom_route(classroom_id):
     deleted = delete_classroom_service(classroom_id)
 
