@@ -21,6 +21,13 @@ def create_app():
 
 
 
+
+
+# git add .
+# git commit -m "add parent guardian student junction table and updated fields"
+# git push
+
+
 # $env:FLASK_APP = "run.py"
 # flask shell
 # git commit -m "Your descriptive message here" 
