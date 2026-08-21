@@ -8,14 +8,14 @@ def _utcnow():
 
 
 class Notification(db.Model):
+    __tablename__ = "notifications"
     
-    id = db.Column(db.Integer, primary_key = True)
-    recepient_id = db.Column(db.Integer, db.ForeignKey("users.id"),
-                             nullable = False)
-    title = db.Column(db.String(60), nullable = False)
-    message = db.Column(db.Text, nullable = False)
-    notification_type = db.Column(db.Enum(NotificationType), nullable = False)
-    is_read = db.Column(db.Boolean, nullable = True, default = False)
-    read_at = db.Column(db.DateTime, nullable = True)
+    id = db.Column(db.Integer, primary_key=True)
+    recipient_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False) # Fixed typo here
+    title = db.Column(db.String(60), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    notification_type = db.Column(db.Enum(NotificationType), nullable=False)
+    is_read = db.Column(db.Boolean, nullable=True, default=False)
+    read_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=_utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)

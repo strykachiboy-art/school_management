@@ -8,7 +8,7 @@ from App.models.excuses import Excuse
 from App.models.attendance import Attendance
 from App.enums.excuse import ExcuseStatus
 from App.enums.attendance import AttendanceStatus
-from App.services.notification_service import notify_excuse_decision
+from App.services.notification_excuse_service import notify_excuse_decision
 
 
 def _utcnow() -> datetime:

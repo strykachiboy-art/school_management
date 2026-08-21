@@ -17,6 +17,8 @@ from App.enums.attendance import AttendanceStatus
 from App.enums.day_of_week import DayOfWeek
 from App.models.attendance import Attendance
 from App.models.term import Term 
+from App.models.notification import Notification
+from App.enums.notification import NotificationType
 
 
 # ----------------------------------------------------------------------
@@ -147,6 +149,35 @@ def admin_client(client, admin_headers):
 # ----------------------------------------------------------------------
 # 3. Model Factories
 # ----------------------------------------------------------------------
+@pytest.fixture
+def make_notification(app):
+    """Factory fixture for creating Notification records."""
+    def _make(
+        recipient_user_id,
+        title="Test Notification",
+        message="Test message",
+        notification_type=NotificationType.GENERAL,
+        is_read=False,
+    ):
+        with app.app_context():
+            n = Notification(
+                recipient_id=recipient_user_id,
+                title=title,
+                message=message,
+                notification_type=notification_type,
+                is_read=is_read,
+            )
+            _db.session.add(n)
+            _db.session.commit()
+            _db.session.refresh(n)
+            _db.session.expunge(n)
+            return n
+    return _make
+
+@pytest.fixture
+def notification(make_notification, student):
+    """Standard notification fixture, owned by the `student` fixture's user."""
+    return make_notification(student.user_id)
 
 @pytest.fixture
 def term(app, academic_session):
