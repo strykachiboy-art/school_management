@@ -17,3 +17,4 @@ from App.models.password_reset_token import PasswordResetToken
 from App.models.timetable import Timetable
 from App.models.parent_guardian import ParentGuardian, ParentGuardianStudent
 from App.models.teacher_permission import TeacherPermission
+from App.models.notification import Notification
