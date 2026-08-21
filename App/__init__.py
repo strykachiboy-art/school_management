@@ -50,6 +50,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     from App.routes.admin.excuse_route import excuse_bp
     from App.routes.admin.timetable import timetable_bp
     from App.routes.admin.parent_guardian import parent_guardian_bp
+    from App.routes.admin.teacher_permission_route import teacher_permission_bp
     
     
 
@@ -71,6 +72,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     app.register_blueprint(excuse_bp, url_prefix="/excuses")
     app.register_blueprint(timetable_bp, url_prefix="/timetables")
     app.register_blueprint(parent_guardian_bp, url_prefix="/parent-guardians")
+    app.register_blueprint(teacher_permission_bp, url_prefix="/admin/teachers")
     
     register_error_handlers(app)
     

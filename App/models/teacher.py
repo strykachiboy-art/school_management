@@ -24,4 +24,5 @@ class Teacher(db.Model):
     user = db.relationship("User", back_populates="teacher_profile")
     classrooms = db.relationship("Classroom", back_populates="teacher")
     subjects = db.relationship("Subject", back_populates="teachers", secondary=teacher_subjects)
-    permission = db.relationship("TeacherPermission", back_populates = "teacher", cascade = "all, delete-orphan")
+    
+    permissions = db.relationship("TeacherPermission", back_populates="teacher", cascade="all, delete-orphan")
