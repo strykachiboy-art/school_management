@@ -24,8 +24,6 @@ def update_user_profile(validated):
     if not g.user:
         return jsonify({"error": "authentication required"}), 401
 
-    user = update_profile(
-        g.user, validated.model_dump(exclude_unset=True)
-    )
+    user = update_profile(g.user, validated)
 
     return jsonify(ProfileSchema().dump(user)), 200

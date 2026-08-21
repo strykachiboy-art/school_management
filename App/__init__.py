@@ -35,6 +35,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     from App.routes.admin import admin_reports_route
     from App.auth.auth import auth_bp
     from App.auth.routes.change_password import change_password_route
+    import App.auth.routes.profile
     import App.auth.routes.forgot_password
     import App.routes.admin.admin_grade_route
     import App.auth.routes.log_out

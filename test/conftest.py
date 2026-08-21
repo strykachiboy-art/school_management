@@ -69,15 +69,16 @@ def auto_clear_limiter(app):
 
 
 @pytest.fixture(autouse=True)
-def auto_clear_redis():
+def auto_clear_redis(app):
     """Cleans up Redis whitelist keys after each test safely."""
     yield
-    try:
-        keys = redis_client.keys("refresh_whitelist:*")
-        if keys:
-            redis_client.delete(*keys)
-    except Exception:
-        pass
+    with app.app_context():
+        try:
+            keys = redis_client.keys("refresh_whitelist:*")
+            if keys:
+                redis_client.delete(*keys)
+        except Exception:
+            pass
 
 
 # ----------------------------------------------------------------------
@@ -114,6 +115,33 @@ def json_client(client):
             return self.c.delete(url, **self._kwargs(kwargs))
 
     return JSONClient(client)
+
+
+@pytest.fixture
+def admin_client(client, admin_headers):
+    """A test client wrapper that automatically attaches Admin Auth headers."""
+    class AdminClient:
+        def __init__(self, c):
+            self.c = c
+            self.headers = admin_headers
+
+        def _kwargs(self, kwargs):
+            kwargs["headers"] = {**self.headers, **kwargs.get("headers", {})}
+            return kwargs
+
+        def post(self, url, **kwargs):
+            return self.c.post(url, **self._kwargs(kwargs))
+
+        def patch(self, url, **kwargs):
+            return self.c.patch(url, **self._kwargs(kwargs))
+
+        def get(self, url, **kwargs):
+            return self.c.get(url, **self._kwargs(kwargs))
+
+        def delete(self, url, **kwargs):
+            return self.c.delete(url, **self._kwargs(kwargs))
+
+    return AdminClient(client)
 
 
 # ----------------------------------------------------------------------

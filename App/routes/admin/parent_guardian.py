@@ -34,7 +34,7 @@ parent_guardian_bp = Blueprint("parent_guardian", __name__, url_prefix="/parent-
 # ==========================================
 
 @parent_guardian_bp.route("", methods=["POST"])
-@role_required([Role.ADMIN, Role.TEACHER])
+@role_required(Role.ADMIN, Role.TEACHER)
 def create_guardian():
     try:
         body = request.get_json()
@@ -57,7 +57,7 @@ def create_guardian():
 
 
 @parent_guardian_bp.route("", methods=["GET"])
-@role_required([Role.ADMIN, Role.TEACHER])
+@role_required(Role.ADMIN, Role.TEACHER)
 def list_guardians():
     guardians = get_all_parent_guardians()
     result = [{
@@ -72,7 +72,7 @@ def list_guardians():
 
 
 @parent_guardian_bp.route("/<int:guardian_id>", methods=["GET"])
-@role_required([Role.ADMIN, Role.TEACHER, Role.PARENT])
+@role_required(Role.ADMIN, Role.TEACHER, Role.PARENT)
 def get_guardian(guardian_id):
     guardian = get_parent_guardian(guardian_id)
     if not guardian:
@@ -88,7 +88,7 @@ def get_guardian(guardian_id):
 
 
 @parent_guardian_bp.route("/<int:guardian_id>", methods=["PUT", "PATCH"])
-@role_required([Role.ADMIN, Role.TEACHER])
+@role_required(Role.ADMIN, Role.TEACHER)
 def update_guardian(guardian_id):
     try:
         body = request.get_json()
@@ -106,7 +106,7 @@ def update_guardian(guardian_id):
 
 
 @parent_guardian_bp.route("/<int:guardian_id>", methods=["DELETE"])
-@role_required([Role.ADMIN])
+@role_required(Role.ADMIN)
 def delete_guardian(guardian_id):
     success = delete_parent_guardian(guardian_id)
     if not success:
@@ -119,7 +119,7 @@ def delete_guardian(guardian_id):
 # ==========================================
 
 @parent_guardian_bp.route("/students", methods=["POST"])
-@role_required([Role.ADMIN, Role.TEACHER])
+@role_required(Role.ADMIN, Role.TEACHER)
 def assign_student():
     try:
         body = request.get_json()
@@ -140,7 +140,7 @@ def assign_student():
 
 
 @parent_guardian_bp.route("/<int:guardian_id>/students", methods=["GET"])
-@role_required([Role.ADMIN, Role.TEACHER, Role.PARENT])
+@role_required(Role.ADMIN, Role.TEACHER, Role.PARENT)
 def get_students_for_guardian(guardian_id):
     assignments = get_guardian_students(guardian_id)
     result = [{
@@ -152,7 +152,7 @@ def get_students_for_guardian(guardian_id):
 
 
 @parent_guardian_bp.route("/students/assignments/<int:record_id>", methods=["DELETE"])
-@role_required([Role.ADMIN, Role.TEACHER])
+@role_required(Role.ADMIN, Role.TEACHER)
 def remove_student_assignment(record_id):
     success = remove_student_from_guardian(record_id)
     if not success:

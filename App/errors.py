@@ -41,7 +41,23 @@ def register_error_handlers(app):
 
         return render_template("errors/400.html", message=message), 400
 
-    # 3. Unhandled Internal Server Errors (500)
+    # 3. ValueError -> 400 Bad Request
+    # Services across the app raise plain ValueError for expected, client-caused
+    # failures (duplicate username, invalid input, not found, etc). Without this
+    # handler they'd all fall through to the generic 500 handler below.
+    @app.errorhandler(ValueError)
+    def handle_value_error(e):
+        message = str(e)
+
+        if wants_json():
+            return jsonify({
+                "error": message,
+                "description": message
+            }), 400
+
+        return render_template("errors/400.html", message=message), 400
+
+    # 4. Unhandled Internal Server Errors (500)
     @app.errorhandler(Exception)
     def handle_unexpected_error(e):
         logger.exception("Unhandled server exception: %s", e)

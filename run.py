@@ -24,7 +24,7 @@ def create_app():
 
 
 # git add .
-# git commit -m "add parent guardian student junction table and updated fields"
+# git commit -m "update codes and files"
 # git push
 
 
