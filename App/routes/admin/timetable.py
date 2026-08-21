@@ -118,7 +118,7 @@ def delete_timetable_route(timetable_id):
 
 @timetable_bp.route("/teacher/<int:teacher_id>", methods=["GET"])
 @jwt_required()
-@role_required(Role.ADMIN)
+@role_required(Role.ADMIN, Role.TEACHER)
 def get_teacher_timetable_route(teacher_id):
     term_id = request.args.get("term_id", type=int)
     day_of_week = request.args.get("day_of_week")
@@ -128,7 +128,7 @@ def get_teacher_timetable_route(teacher_id):
 
 @timetable_bp.route("/classroom/<int:classroom_id>", methods=["GET"])
 @jwt_required()
-@role_required(Role.ADMIN)
+@role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_classroom_timetable_route(classroom_id):
     term_id = request.args.get("term_id", type=int)
     day_of_week = request.args.get("day_of_week")

@@ -1,12 +1,15 @@
 from flask import Blueprint, jsonify, abort, g
+from flask_jwt_extended import jwt_required
 from App.decorators import role_required
 from App.services.teacher_grade_service import get_student_grade_for_teachers
+from App.enums.role import Role
 
 teacher_grade_bp = Blueprint("teacher_grade", __name__, url_prefix="/teacher")
 
 
 @teacher_grade_bp.route("/students/<int:student_id>/grade", methods=["GET"])
-@role_required("teacher")
+@jwt_required()
+@role_required(Role.TEACHER)
 def get_student_grade(student_id):
     teacher = g.user.teacher_profile
 
