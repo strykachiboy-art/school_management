@@ -16,3 +16,8 @@ class User(db.Model):
     
     student_profile = db.relationship("Student", back_populates="user", uselist=False)
     teacher_profile = db.relationship("Teacher", back_populates="user", uselist=False)
+    audit_logs = db.relationship(
+    "AuditLog",
+    back_populates="actor",
+    lazy="dynamic"
+)

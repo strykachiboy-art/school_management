@@ -18,3 +18,4 @@ from App.models.timetable import Timetable
 from App.models.parent_guardian import ParentGuardian, ParentGuardianStudent
 from App.models.teacher_permission import TeacherPermission
 from App.models.notification import Notification
+from App.models.audit_log import AuditLog
