@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify, request, g, abort
 from pydantic import ValidationError
 
 # Import your role-required decorator and the new Role enum
@@ -40,7 +40,7 @@ def create_guardian():
         body = request.get_json()
         validated_data = ParentGuardianCreateRequest(**body)
         
-        guardian = create_parent_guardian(validated_data.model_dump())
+        guardian = create_parent_guardian(validated_data.model_dump(), actor_id=g.user.id)
         return jsonify({
             "message": "Parent/Guardian created successfully",
             "id": guardian.id,
@@ -94,7 +94,7 @@ def update_guardian(guardian_id):
         body = request.get_json()
         validated_data = ParentGuardianUpdateRequest(**body)
         
-        updated = update_parent_guardian(guardian_id, validated_data.model_dump(exclude_unset=True))
+        updated = update_parent_guardian(guardian_id, validated_data.model_dump(exclude_unset=True), actor_id=g.user.id)
         if not updated:
             return jsonify({"error": "Parent/Guardian not found"}), 404
             
@@ -108,7 +108,7 @@ def update_guardian(guardian_id):
 @parent_guardian_bp.route("/<int:guardian_id>", methods=["DELETE"])
 @role_required(Role.ADMIN)
 def delete_guardian(guardian_id):
-    success = delete_parent_guardian(guardian_id)
+    success = delete_parent_guardian(guardian_id, actor_id=g.user.id)
     if not success:
         return jsonify({"error": "Parent/Guardian not found"}), 404
     return jsonify({"message": "Parent/Guardian deleted successfully"}), 200
@@ -125,7 +125,7 @@ def assign_student():
         body = request.get_json()
         validated_data = ParentGuardianStudentCreateRequest(**body)
         
-        assignment = assign_student_to_guardian(validated_data.model_dump())
+        assignment = assign_student_to_guardian(validated_data.model_dump(), actor_id=g.user.id)
         return jsonify({
             "message": "Student assigned to guardian successfully",
             "id": assignment.id,
@@ -154,7 +154,7 @@ def get_students_for_guardian(guardian_id):
 @parent_guardian_bp.route("/students/assignments/<int:record_id>", methods=["DELETE"])
 @role_required(Role.ADMIN, Role.TEACHER)
 def remove_student_assignment(record_id):
-    success = remove_student_from_guardian(record_id)
+    success = remove_student_from_guardian(record_id, actor_id=g.user.id)
     if not success:
         return jsonify({"error": "Assignment not found"}), 404
     return jsonify({"message": "Student unlinked from guardian successfully"}), 200

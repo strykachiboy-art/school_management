@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, abort
+from flask import Blueprint, jsonify, request, abort, g
 from sqlalchemy.exc import IntegrityError
 from App.decorators import role_required
 from App.enums.role import Role
@@ -23,7 +23,7 @@ exam_bp = Blueprint('exam', __name__, url_prefix="/exams")
 @validate_request(ExamCreateRequest)
 def create_exam_route(data: ExamCreateRequest):
     try:
-        created_exam = create_exam(data)
+        created_exam = create_exam(data, actor_id=g.user.id)
 
         if created_exam is None:
             return jsonify({"error": "Could not create exam"}), 400
@@ -85,7 +85,7 @@ def update_exam_route(data: ExamCreateRequest, exam_id):
     if exam is None:
         abort(404, description="Exam not found")
 
-    updated_exam = update_exam(exam_id, data)
+    updated_exam = update_exam(exam_id, data, actor_id=g.user.id)
 
     serialized_exam = ExamResponse.model_validate(updated_exam).model_dump(mode="json")
     return jsonify(serialized_exam), 200
@@ -95,7 +95,7 @@ def update_exam_route(data: ExamCreateRequest, exam_id):
 @exam_bp.route("/<int:exam_id>", methods=["DELETE"])
 @role_required(Role.ADMIN)
 def remove_exam(exam_id):
-    deleted = delete_exam(exam_id)
+    deleted = delete_exam(exam_id, actor_id=g.user.id)
     
     if not deleted:
         abort(404, description="Exam not found")

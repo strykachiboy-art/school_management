@@ -9,6 +9,8 @@ from App.models.term import Term
 from App.models.promotion_history import PromotionHistory
 from App.enums.promotion import PromotionDecision
 from App.enums.attendance import AttendanceStatus
+from App.services.audit_log_service import create_audit_log
+from App.enums.audit import AuditAction
 
 PASS_AVERAGE_THRESHOLD = 50.0
 MIN_ATTENDANCE_THRESHOLD = 75.0
@@ -97,6 +99,7 @@ def promote_student(
     decided_by=None,
     decided_by_role=None,
     allow_level_skip=False,
+    actor_id=None,
 ):
     student = db.session.get(Student, student_id)
     if student is None:
@@ -162,10 +165,20 @@ def promote_student(
     db.session.add(history)
     db.session.commit()
 
+    effective_actor_id = actor_id if actor_id is not None else decided_by
+    if effective_actor_id:
+        create_audit_log(
+            actor_id=effective_actor_id,
+            action=AuditAction.CREATE,
+            resource_type="PromotionHistory",
+            resource_id=history.id,
+            description=f"Promoted student ID {student_id} to classroom ID {to_classroom_id}",
+        )
+
     return history
 
 
-def repeat_student(student_id, academic_session_id, remarks=None, decided_by=None):
+def repeat_student(student_id, academic_session_id, remarks=None, decided_by=None, actor_id=None):
     student = db.session.get(Student, student_id)
     if student is None:
         return None
@@ -187,10 +200,20 @@ def repeat_student(student_id, academic_session_id, remarks=None, decided_by=Non
     db.session.add(history)
     db.session.commit()
 
+    effective_actor_id = actor_id if actor_id is not None else decided_by
+    if effective_actor_id:
+        create_audit_log(
+            actor_id=effective_actor_id,
+            action=AuditAction.CREATE,
+            resource_type="PromotionHistory",
+            resource_id=history.id,
+            description=f"Recorded repeat status for student ID {student_id} in session ID {academic_session_id}",
+        )
+
     return history
 
 
-def graduate_student(student_id, academic_session_id, remarks=None, decided_by=None):
+def graduate_student(student_id, academic_session_id, remarks=None, decided_by=None, actor_id=None):
     student = db.session.get(Student, student_id)
     if student is None:
         return None
@@ -214,6 +237,16 @@ def graduate_student(student_id, academic_session_id, remarks=None, decided_by=N
 
     db.session.add(history)
     db.session.commit()
+
+    effective_actor_id = actor_id if actor_id is not None else decided_by
+    if effective_actor_id:
+        create_audit_log(
+            actor_id=effective_actor_id,
+            action=AuditAction.CREATE,
+            resource_type="PromotionHistory",
+            resource_id=history.id,
+            description=f"Graduated student ID {student_id}",
+        )
 
     return history
 
@@ -283,7 +316,7 @@ def _find_next_classroom(current_classroom):
     return db.session.scalars(stmt).first()
 
 
-def promote_session_students(academic_session_id, classroom_id=None, decided_by=None):
+def promote_session_students(academic_session_id, classroom_id=None, decided_by=None, actor_id=None):
     session = db.session.get(AcademicSession, academic_session_id)
     if session is None:
         raise ValueError("Academic session not found")
@@ -346,5 +379,21 @@ def promote_session_students(academic_session_id, classroom_id=None, decided_by=
     if history_records:
         db.session.add_all(history_records)
     db.session.commit()
+
+    effective_actor_id = actor_id if actor_id is not None else decided_by
+    if history_records and effective_actor_id:
+        create_audit_log(
+            actor_id=effective_actor_id,
+            action=AuditAction.BULK_ACTION,
+            resource_type="PromotionHistory",
+            resource_id=None,
+            description=f"Bulk processed end-of-term promotion run for session ID {academic_session_id}",
+            changes={
+                "promoted_count": len(results["promoted"]),
+                "repeated_count": len(results["repeated"]),
+                "graduated_count": len(results["graduated"]),
+                "skipped_count": len(results["skipped"])
+            }
+        )
 
     return results

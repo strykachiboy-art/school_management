@@ -68,7 +68,7 @@ def create_attendance():
     except ValidationError as err:
         return jsonify(err.errors()), 422
 
-    record = create_attendance_service(data, actor_role=g.user.role if g.user else None)
+    record = create_attendance_service(data, actor_id=g.user.id)
     return jsonify(serialize_attendance(record)), 201
 
 
@@ -89,7 +89,7 @@ def mark_classroom_attendance(classroom_id: int):
         term_id=payload.term_id,
         date=payload.date,
         attendance_data=records,
-        actor_role=g.user.role if g.user else None,
+        actor_id=g.user.id,
     )
 
     return jsonify({"message": "Classroom attendance marked successfully."}), 200
@@ -101,6 +101,8 @@ def mark_classroom_attendance(classroom_id: int):
 @role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT, Role.PARENT)
 def get_attendance_by_id(attendance_id: int):
     record = get_attendance_by_id_service(attendance_id)
+    if record is None:
+        abort(404, description="Attendance record not found")
     _enforce_attendance_ownership(record.student_id)
     return jsonify(serialize_attendance(record)), 200
 
@@ -163,6 +165,7 @@ def update_attendance(attendance_id: int):
         attendance_id=attendance_id,
         status=data.status,
         date=data.date,
+        actor_id=g.user.id,
     )
     return jsonify(serialize_attendance(record)), 200
 
@@ -172,7 +175,9 @@ def update_attendance(attendance_id: int):
 @attendance_bp.route("/<int:attendance_id>", methods=["DELETE"])
 @role_required(Role.ADMIN, Role.TEACHER)
 def delete_attendance(attendance_id: int):
-    delete_attendance_service(attendance_id)
+    deleted = delete_attendance_service(attendance_id, actor_id=g.user.id)
+    if not deleted:
+        abort(404, description="Attendance record not found")
     return jsonify({"message": f"Attendance record {attendance_id} deleted successfully."}), 200
 
 

@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, abort
+from flask import Blueprint, jsonify, request, abort, g
 from App.decorators import role_required
 from App.enums.role import Role
 from App.utils.helpers import validate_request
@@ -26,7 +26,7 @@ teacher_bp = Blueprint("teacher", __name__, url_prefix="/teachers")
 @role_required(Role.ADMIN)
 @validate_request(TeacherCreateRequest)
 def create_teacher(data: TeacherCreateRequest):
-    teacher = create_teachers(data)
+    teacher = create_teachers(data, actor_id=g.user.id)
     
     serialized_teacher = TeacherResponse.model_validate(teacher).model_dump()
     return jsonify(serialized_teacher), 201
@@ -88,7 +88,7 @@ def update_teacher(data: TeacherCreateRequest, teacher_id):
     if teacher is None:
         abort(404, description="Teacher not found")
 
-    updated_teacher = update_teacher_service(teacher_id, data)
+    updated_teacher = update_teacher_service(teacher_id, data, actor_id=g.user.id)
 
     serialized_teacher = TeacherResponse.model_validate(updated_teacher).model_dump()
     return jsonify(serialized_teacher), 200
@@ -99,7 +99,7 @@ def update_teacher(data: TeacherCreateRequest, teacher_id):
 @teacher_bp.route("/<int:teacher_id>", methods=["DELETE"])
 @role_required(Role.ADMIN)
 def delete_teacher(teacher_id):
-    deleted = delete_teacher_service(teacher_id)
+    deleted = delete_teacher_service(teacher_id, actor_id=g.user.id)
 
     if not deleted:
         abort(404, description="Teacher not found")

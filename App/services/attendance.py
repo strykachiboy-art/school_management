@@ -7,6 +7,8 @@ from App.extensions import db
 from App.models.attendance import Attendance
 from App.models.student import Student
 from App.enums.attendance import AttendanceStatus
+from App.services.audit_log_service import create_audit_log
+from App.enums.audit import AuditAction
 
 
 def _today():
@@ -27,7 +29,7 @@ def _assert_date_not_future(record_date, actor_role):
 
 # ============================ 1. Create Single Attendance ============================
 
-def create_attendance(data, actor_role=None):
+def create_attendance(data, actor_role=None, actor_id=None):
     """
     Creates a single Attendance record.
     """
@@ -50,12 +52,21 @@ def create_attendance(data, actor_role=None):
             description="Could not create attendance — duplicate student record on this date or missing required fields.",
         )
 
+    if actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.CREATE,
+            resource_type="Attendance",
+            resource_id=new_attendance.id,
+            description=f"Recorded attendance for student ID {new_attendance.student_id} on {new_attendance.date}",
+        )
+
     return new_attendance
 
 
 # ============================ 2. Bulk Mark Classroom Attendance ============================
 
-def mark_classroom_attendance(classroom_id, term_id, date, attendance_data, actor_role=None):
+def mark_classroom_attendance(classroom_id, term_id, date, attendance_data, actor_role=None, actor_id=None):
     """
     Bulk creates or updates attendance records for a classroom on a specific date.
     """
@@ -112,6 +123,16 @@ def mark_classroom_attendance(classroom_id, term_id, date, attendance_data, acto
 
         # Commit all changes at once (updates + bulk inserts)
         db.session.commit()
+
+        if actor_id:
+            create_audit_log(
+                actor_id=actor_id,
+                action=AuditAction.UPDATE,
+                resource_type="Classroom",
+                resource_id=classroom_id,
+                description=f"Bulk marked attendance for classroom ID {classroom_id} on {date}",
+            )
+
         return True
 
     except HTTPException:
@@ -183,11 +204,17 @@ def get_term_attendance(term_id):
 
 # ============================ 7. Update Attendance ============================
 
-def update_attendance(attendance_id, status=None, date=None):
+def update_attendance(attendance_id, status=None, date=None, actor_id=None):
     """
     Correct/update an existing attendance record.
     """
     attendance = get_attendance_by_id(attendance_id)
+
+    changes = {}
+    if status is not None and status != attendance.status:
+        changes["status"] = {"before": str(attendance.status), "after": str(status)}
+    if date is not None and date != attendance.date:
+        changes["date"] = {"before": str(attendance.date), "after": str(date)}
 
     if status is not None:
         attendance.status = status
@@ -203,19 +230,41 @@ def update_attendance(attendance_id, status=None, date=None):
             description="Could not update attendance — duplicate record found for this student and date.",
         )
 
+    if changes and actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.UPDATE,
+            resource_type="Attendance",
+            resource_id=attendance.id,
+            description=f"Updated attendance record for student ID {attendance.student_id}",
+            changes=changes,
+        )
+
     return attendance
 
 
 # ============================ 8. Delete Attendance ============================
 
-def delete_attendance(attendance_id):
+def delete_attendance(attendance_id, actor_id=None):
     """
     Remove an attendance record if entered incorrectly.
     """
     attendance = get_attendance_by_id(attendance_id)
+    student_id = attendance.student_id
+    att_date = attendance.date
 
     db.session.delete(attendance)
     db.session.commit()
+
+    if actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.DELETE,
+            resource_type="Attendance",
+            resource_id=attendance_id,
+            description=f"Deleted attendance record for student ID {student_id} on {att_date}",
+        )
+
     return True
 
 

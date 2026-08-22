@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, abort
+from flask import Blueprint, jsonify, request, abort, g
 from App.enums.role import Role
 from App.decorators import role_required
 from App.utils.helpers import validate_request
@@ -29,7 +29,7 @@ term_bp = Blueprint("term", __name__, url_prefix="/terms")
 @role_required(Role.ADMIN)
 @validate_request(TermCreateRequest)
 def create_term_route(data: TermCreateRequest):
-    term = create_term(data)
+    term = create_term(data, actor_id=g.user.id)
     serialized = TermResponse.model_validate(term).model_dump()
     return jsonify(serialized), 201
 
@@ -72,7 +72,7 @@ def get_term_route(term_id: int):
 @role_required(Role.ADMIN)
 @validate_request(TermUpdateRequest)
 def update_term_route(data: TermUpdateRequest, term_id: int):
-    term = update_term(data, term_id)
+    term = update_term(data, term_id, actor_id=g.user.id)
     if term is None:
         abort(404, description="Term not found")
 
@@ -86,7 +86,7 @@ def update_term_route(data: TermUpdateRequest, term_id: int):
 @role_required(Role.ADMIN)
 @validate_request(TermReassignSessionRequest)
 def reassign_term_session_route(data: TermReassignSessionRequest, term_id: int):
-    term = reassign_term_session(term_id, data.academic_session_id)
+    term = reassign_term_session(term_id, data.academic_session_id, actor_id=g.user.id)
     if term is None:
         abort(404, description="Term not found")
 
@@ -99,7 +99,7 @@ def reassign_term_session_route(data: TermReassignSessionRequest, term_id: int):
 @term_bp.route("/<int:term_id>", methods=["DELETE"])
 @role_required(Role.ADMIN)
 def delete_term_route(term_id: int):
-    deleted = delete_term(term_id)
+    deleted = delete_term(term_id, actor_id=g.user.id)
     if not deleted:
         abort(404, description="Term not found")
 
@@ -111,7 +111,7 @@ def delete_term_route(term_id: int):
 @term_bp.route("/<int:term_id>/activate", methods=["PATCH"])
 @role_required(Role.ADMIN)
 def activate_term_route(term_id: int):
-    term = activate_term(term_id)
+    term = activate_term(term_id, actor_id=g.user.id)
     if term is None:
         abort(404, description="Term not found")
 

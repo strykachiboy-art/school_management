@@ -37,6 +37,8 @@ def create_excuse():
 @role_required(Role.ADMIN, Role.TEACHER, Role.STUDENT)
 def get_excuse(excuse_id: int):
     excuse = excuse_service.get_excuse(excuse_id)
+    if excuse is None:
+        abort(404, description="Excuse not found")
     return jsonify(ExcuseResponse.model_validate(excuse).model_dump()), 200
 
 

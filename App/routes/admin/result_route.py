@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, abort, flash, redirect, url_for
+from flask import Blueprint, jsonify, request, abort, flash, redirect, url_for, g
 from sqlalchemy.exc import IntegrityError
 
 from App.decorators import role_required
@@ -26,7 +26,8 @@ def create_result_route(data: ResultCreateRequest):
     created_result = create_result(
         student_id=data.student_id, 
         exam_id=data.exam_id,
-        marks_obtained=data.marks_obtained
+        marks_obtained=data.marks_obtained,
+        actor_id=g.user.id
     )
 
     serialized_result = ResultResponse.model_validate(created_result).model_dump()
@@ -60,7 +61,7 @@ def get_result_route(result_id):
 @result_bp.route("/<int:result_id>/delete", methods=["DELETE"])
 @role_required(Role.ADMIN)
 def delete_result_route(result_id):
-    deleted = delete_result(result_id)
+    deleted = delete_result(result_id, actor_id=g.user.id)
     
     if not deleted:
         abort(404, description="Result not found")

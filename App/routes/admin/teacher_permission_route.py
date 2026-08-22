@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, abort
+from flask import Blueprint, jsonify, abort, g
 
 from App.decorators import role_required
 from App.enums.role import Role
@@ -32,7 +32,7 @@ def _serialize(record):
 @role_required(Role.ADMIN)
 @validate_request(AssignPermissionRequest)
 def assign_permission_route(data: AssignPermissionRequest, teacher_id):
-    record = assign_teacher_permission(teacher_id, data.permission)
+    record = assign_teacher_permission(teacher_id, data.permission, actor_id=g.user.id)
     return jsonify({
         "message": "Permission assigned successfully.",
         "data": _serialize(record),
@@ -54,7 +54,7 @@ def get_teacher_permissions_route(teacher_id):
 @role_required(Role.ADMIN)
 @validate_request(UpdatePermissionsRequest)
 def update_permissions_route(data: UpdatePermissionsRequest, teacher_id):
-    records = update_teacher_permissions(teacher_id, data.permissions)
+    records = update_teacher_permissions(teacher_id, data.permissions, actor_id=g.user.id)
     return jsonify({
         "message": "Permissions updated successfully.",
         "data": [_serialize(r) for r in records],
@@ -71,7 +71,7 @@ def remove_permission_route(teacher_id, permission_value):
     except ValueError:
         abort(400, description=f"'{permission_value}' is not a valid permission.")
 
-    remove_teacher_permission(teacher_id, permission)
+    remove_teacher_permission(teacher_id, permission, actor_id=g.user.id)
     return jsonify({"message": "Permission removed successfully."}), 200
 
 

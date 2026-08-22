@@ -4,9 +4,11 @@ from sqlalchemy.exc import IntegrityError
 from App.extensions import db
 from App.models.classroom import Classroom
 from App.models.student import Student
+from App.services.audit_log_service import create_audit_log
+from App.enums.audit import AuditAction
 
 
-def create_classroom(data):
+def create_classroom(data, actor_id=None):
     classroom = Classroom(
         name=data.name,
         capacity=data.capacity or 0,
@@ -20,6 +22,15 @@ def create_classroom(data):
     except IntegrityError:
         db.session.rollback()
         abort(400, description="Could not create classroom — check for duplicate name.")
+
+    if actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.CREATE,
+            resource_type="Classroom",
+            resource_id=classroom.id,
+            description=f"Created classroom {classroom.name}",
+        )
 
     return classroom
 
@@ -42,10 +53,20 @@ def get_all_classroom_list():
     return db.session.scalars(stmt).all()
 
 
-def update_classroom(classroom_id, data):
+def update_classroom(classroom_id, data, actor_id=None):
     classroom = db.session.get(Classroom, classroom_id)
     if classroom is None:
         return None
+
+    changes = {}
+    if data.name and data.name != classroom.name:
+        changes["name"] = {"before": classroom.name, "after": data.name}
+    if data.capacity is not None and data.capacity != classroom.capacity:
+        changes["capacity"] = {"before": classroom.capacity, "after": data.capacity}
+    if data.location and data.location != classroom.location:
+        changes["location"] = {"before": classroom.location, "after": data.location}
+    if data.teacher_id is not None and data.teacher_id != classroom.teacher_id:
+        changes["teacher_id"] = {"before": classroom.teacher_id, "after": data.teacher_id}
 
     classroom.name = data.name or classroom.name
     classroom.capacity = data.capacity if data.capacity is not None else classroom.capacity
@@ -60,20 +81,41 @@ def update_classroom(classroom_id, data):
         db.session.rollback()
         abort(400, description="Could not update classroom — check for duplicate name.")
 
+    if changes and actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.UPDATE,
+            resource_type="Classroom",
+            resource_id=classroom.id,
+            description=f"Updated classroom {classroom.name}",
+            changes=changes,
+        )
+
     return classroom
 
 
-def delete_classroom(classroom_id):
+def delete_classroom(classroom_id, actor_id=None):
     classroom = db.session.get(Classroom, classroom_id)
     if classroom is None:
         return False
 
+    classroom_name = classroom.name
     db.session.delete(classroom)
     db.session.commit()
+
+    if actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.DELETE,
+            resource_type="Classroom",
+            resource_id=classroom_id,
+            description=f"Deleted classroom {classroom_name}",
+        )
+
     return True
 
 
-def bulk_assign_students(classroom_id, student_ids):
+def bulk_assign_students(classroom_id, student_ids, actor_id=None):
     classroom = db.session.get(Classroom, classroom_id)
     if classroom is None:
         return None
@@ -88,6 +130,16 @@ def bulk_assign_students(classroom_id, student_ids):
         student.classroom_id = classroom.id
 
     db.session.commit()
+
+    if actor_id and found_ids:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.BULK_ACTION,
+            resource_type="Classroom",
+            resource_id=classroom.id,
+            description=f"Bulk assigned {len(found_ids)} student(s) to classroom {classroom.name}",
+            changes={"assigned_student_ids": sorted(list(found_ids))}
+        )
 
     return {
         "classroom_id": classroom.id,

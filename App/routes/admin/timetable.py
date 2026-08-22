@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, g
 from flask_jwt_extended import jwt_required
 from App.decorators import role_required
 from App.enums.role import Role
@@ -41,7 +41,7 @@ def create_timetable_route():
     except Exception as e:
         return jsonify({"error": str(e)}), 422
 
-    timetable = create_timetable(payload.model_dump())
+    timetable = create_timetable(payload.model_dump(), actor_id=g.user.id)
     
     return jsonify({
         "message": "Timetable entry created successfully.",
@@ -100,7 +100,7 @@ def update_timetable_route(timetable_id):
         return jsonify({"error": str(e)}), 422
 
     update_data = payload.model_dump(exclude_unset=True)
-    timetable = update_timetable(timetable_id, update_data)
+    timetable = update_timetable(timetable_id, update_data, actor_id=g.user.id)
     
     return jsonify({
         "message": "Timetable entry updated successfully.",
@@ -112,7 +112,7 @@ def update_timetable_route(timetable_id):
 @jwt_required()
 @role_required(Role.ADMIN)
 def delete_timetable_route(timetable_id):
-    delete_timetable(timetable_id)
+    delete_timetable(timetable_id, actor_id=g.user.id)
     return jsonify({"message": "Timetable entry deleted successfully."}), 200
 
 

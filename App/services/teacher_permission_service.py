@@ -5,6 +5,8 @@ from App.extensions import db
 from App.models.teacher import Teacher
 from App.models.teacher_permission import TeacherPermission
 from App.enums.permission import Permission
+from App.services.audit_log_service import create_audit_log
+from App.enums.audit import AuditAction
 
 
 def _get_teacher_or_404(teacher_id: int) -> Teacher:
@@ -14,7 +16,7 @@ def _get_teacher_or_404(teacher_id: int) -> Teacher:
     return teacher
 
 
-def assign_teacher_permission(teacher_id: int, permission: Permission) -> TeacherPermission:
+def assign_teacher_permission(teacher_id: int, permission: Permission, actor_id=None) -> TeacherPermission:
     """Admin assigns a single permission to a teacher. Prevents duplicates."""
     _get_teacher_or_404(teacher_id)
 
@@ -36,6 +38,15 @@ def assign_teacher_permission(teacher_id: int, permission: Permission) -> Teache
         db.session.rollback()
         abort(400, description=f"Teacher already has the '{permission.value}' permission.")
 
+    if actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.CREATE,
+            resource_type="TeacherPermission",
+            resource_id=record.id,
+            description=f"Assigned permission '{permission.value}' to teacher ID {teacher_id}",
+        )
+
     return record
 
 
@@ -53,12 +64,12 @@ def get_all_teacher_permissions() -> list[TeacherPermission]:
     return db.session.scalars(db.select(TeacherPermission)).all()
 
 
-def update_teacher_permissions(teacher_id: int, permissions: list[Permission]) -> list[TeacherPermission]:
-    # """
-    # Replaces a teacher's full permission set with the given list.
-    # Only adds what's missing and removes what's no longer wanted —
-    # unchanged permissions keep their original row untouched.
-    # """
+def update_teacher_permissions(teacher_id: int, permissions: list[Permission], actor_id=None) -> list[TeacherPermission]:
+    """
+    Replaces a teacher's full permission set with the given list.
+    Only adds what's missing and removes what's no longer wanted —
+    unchanged permissions keep their original row untouched.
+    """
     _get_teacher_or_404(teacher_id)
 
     desired = set(permissions)
@@ -68,24 +79,39 @@ def update_teacher_permissions(teacher_id: int, permissions: list[Permission]) -
     ).all()
     existing_permissions = {r.permission for r in existing_records}
 
+    added = desired - existing_permissions
+    removed = existing_permissions - desired
+
     # Remove permissions no longer wanted.
     for record in existing_records:
         if record.permission not in desired:
             db.session.delete(record)
 
     # Add permissions that are newly wanted.
-    to_add = desired - existing_permissions
-    new_records = [TeacherPermission(teacher_id=teacher_id, permission=p) for p in to_add]
+    new_records = [TeacherPermission(teacher_id=teacher_id, permission=p) for p in added]
     db.session.add_all(new_records)
 
     db.session.commit()
+
+    if (added or removed) and actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.UPDATE,
+            resource_type="Teacher",
+            resource_id=teacher_id,
+            description=f"Updated permissions for teacher ID {teacher_id}",
+            changes={
+                "added": [p.value for p in added],
+                "removed": [p.value for p in removed],
+            },
+        )
 
     return db.session.scalars(
         db.select(TeacherPermission).where(TeacherPermission.teacher_id == teacher_id)
     ).all()
 
 
-def remove_teacher_permission(teacher_id: int, permission: Permission) -> None:
+def remove_teacher_permission(teacher_id: int, permission: Permission, actor_id=None) -> None:
     """Admin revokes a specific permission from a teacher."""
     record = db.session.scalar(
         db.select(TeacherPermission).where(
@@ -96,5 +122,15 @@ def remove_teacher_permission(teacher_id: int, permission: Permission) -> None:
     if record is None:
         abort(404, description=f"Teacher does not have the '{permission.value}' permission.")
 
+    record_id = record.id
     db.session.delete(record)
     db.session.commit()
+
+    if actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.DELETE,
+            resource_type="TeacherPermission",
+            resource_id=record_id,
+            description=f"Revoked permission '{permission.value}' from teacher ID {teacher_id}",
+        )

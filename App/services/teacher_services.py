@@ -6,9 +6,11 @@ from werkzeug.security import generate_password_hash
 from App.extensions import db
 from App.models.teacher import Teacher
 from App.models.user import User
+from App.services.audit_log_service import create_audit_log
+from App.enums.audit import AuditAction
 
 
-def create_teachers(form):
+def create_teachers(form, actor_id=None):
     user = User(
         username=form.username,
         email=form.email,
@@ -32,6 +34,15 @@ def create_teachers(form):
         db.session.rollback()
         abort(400, description="A user with that username or email already exists.")
 
+    if actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.CREATE,
+            resource_type="Teacher",
+            resource_id=teacher.id,
+            description=f"Created teacher profile for {teacher.full_name} ({teacher.email})",
+        )
+
     return teacher
 
 
@@ -43,17 +54,27 @@ def get_teacher_by_id(teacher_id):
     return db.session.get(Teacher, teacher_id)
 
 
-def update_teachers(teacher_id, form):
+def update_teachers(teacher_id, form, actor_id=None):
     teacher = db.session.get(Teacher, teacher_id)
     if teacher is None:
         return None
+
+    changes = {}
+    if form.full_name and form.full_name != teacher.full_name:
+        changes["full_name"] = {"before": teacher.full_name, "after": form.full_name}
+    if form.email and form.email != teacher.email:
+        changes["email"] = {"before": teacher.email, "after": form.email}
+    if form.phone and form.phone != teacher.phone:
+        changes["phone"] = {"before": teacher.phone, "after": form.phone}
 
     teacher.full_name = form.full_name or teacher.full_name
     teacher.email = form.email or teacher.email
     teacher.phone = form.phone or teacher.phone
 
-    if teacher.user is not None:
-        teacher.user.email = form.email or teacher.user.email
+    if teacher.user is not None and form.email:
+        if teacher.user.email != form.email:
+            changes["user_email"] = {"before": teacher.user.email, "after": form.email}
+        teacher.user.email = form.email
 
     try:
         db.session.commit()
@@ -61,19 +82,40 @@ def update_teachers(teacher_id, form):
         db.session.rollback()
         abort(400, description="That email is already in use.")
 
+    if changes and actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.UPDATE,
+            resource_type="Teacher",
+            resource_id=teacher.id,
+            description=f"Updated teacher ID {teacher.id} ({teacher.full_name})",
+            changes=changes,
+        )
+
     return teacher
 
 
-def delete_teacher(teacher_id):
+def delete_teacher(teacher_id, actor_id=None):
     teacher = db.session.get(Teacher, teacher_id)
     if teacher is None:
         return False
 
+    teacher_name = teacher.full_name
     user = teacher.user
     db.session.delete(teacher)
     if user is not None:
         db.session.delete(user)
     db.session.commit()
+
+    if actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.DELETE,
+            resource_type="Teacher",
+            resource_id=teacher_id,
+            description=f"Deleted teacher ID {teacher_id} ({teacher_name})",
+        )
+
     return True
 
 

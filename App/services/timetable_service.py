@@ -6,6 +6,8 @@ from App.extensions import db
 from App.models.timetable import Timetable
 from App.models.subject import Subject
 from App.models.classroom import Classroom
+from App.services.audit_log_service import create_audit_log
+from App.enums.audit import AuditAction
 
 
 # ========================= Helper: Overlap Check ========================
@@ -42,9 +44,7 @@ def _check_schedule_conflict(term_id, day_of_week, start_time, end_time, teacher
 
 # ========================= Create Timetable ========================
 
-# ========================= Create Timetable ========================
-
-def create_timetable(data):
+def create_timetable(data, actor_id=None):
     _check_schedule_conflict(
         term_id=data["term_id"],
         day_of_week=data["day_of_week"],
@@ -71,6 +71,15 @@ def create_timetable(data):
         db.session.rollback()
         abort(400, description="Could not create timetable — check foreign key constraints.")
     
+    if actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.CREATE,
+            resource_type="Timetable",
+            resource_id=timetable.id,
+            description=f"Created timetable entry ID {timetable.id} for classroom ID {timetable.classroom_id}",
+        )
+
     return timetable
 
 
@@ -115,8 +124,18 @@ def get_timetables(search="", term_id=None, classroom_id=None, teacher_id=None, 
 
 # ========================= Update Timetable =========================
 
-def update_timetable(timetable_id, data):
+def update_timetable(timetable_id, data, actor_id=None):
     timetable = get_timetable(timetable_id)
+
+    old_values = {
+        "term_id": timetable.term_id,
+        "classroom_id": timetable.classroom_id,
+        "subject_id": timetable.subject_id,
+        "teacher_id": timetable.teacher_id,
+        "day_of_week": timetable.day_of_week,
+        "start_time": timetable.start_time,
+        "end_time": timetable.end_time,
+    }
 
     term_id = getattr(data, "term_id", timetable.term_id)
     classroom_id = getattr(data, "classroom_id", timetable.classroom_id)
@@ -136,6 +155,22 @@ def update_timetable(timetable_id, data):
         exclude_id=timetable_id,
     )
 
+    new_values = {
+        "term_id": term_id,
+        "classroom_id": classroom_id,
+        "subject_id": subject_id,
+        "teacher_id": teacher_id,
+        "day_of_week": day_of_week,
+        "start_time": start_time,
+        "end_time": end_time,
+    }
+
+    changes = {}
+    for key, new_val in new_values.items():
+        old_val = old_values[key]
+        if new_val is not None and new_val != old_val:
+            changes[key] = {"before": str(old_val), "after": str(new_val)}
+
     timetable.term_id = term_id
     timetable.classroom_id = classroom_id
     timetable.subject_id = subject_id
@@ -150,15 +185,37 @@ def update_timetable(timetable_id, data):
         db.session.rollback()
         abort(400, description="Could not update timetable — check foreign key constraints.")
 
+    if changes and actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.UPDATE,
+            resource_type="Timetable",
+            resource_id=timetable.id,
+            description=f"Updated timetable entry ID {timetable.id}",
+            changes=changes,
+        )
+
     return timetable
 
 
 # ========================= Delete Timetable =========================
 
-def delete_timetable(timetable_id):
+def delete_timetable(timetable_id, actor_id=None):
     timetable = get_timetable(timetable_id)
+    classroom_id = timetable.classroom_id
+    
     db.session.delete(timetable)
     db.session.commit()
+
+    if actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.DELETE,
+            resource_type="Timetable",
+            resource_id=timetable_id,
+            description=f"Deleted timetable entry ID {timetable_id} for classroom ID {classroom_id}",
+        )
+
     return True
 
 

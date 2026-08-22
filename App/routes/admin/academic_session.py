@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, abort
+from flask import Blueprint, jsonify, request, abort, g
 from App.decorators import role_required
 from App.utils.helpers import validate_request
 from App.enums.role import Role
@@ -27,7 +27,7 @@ academic_session_bp = Blueprint("academic_session", __name__, url_prefix="/acade
 @role_required(Role.ADMIN)
 @validate_request(AcademicSessionCreateRequest)
 def create_session(data: AcademicSessionCreateRequest):
-    session = create_academic_session(data)
+    session = create_academic_session(data, actor_id=g.user.id)
     serialized = AcademicSessionResponse.model_validate(session).model_dump()
     return jsonify(serialized), 201
 
@@ -70,7 +70,7 @@ def get_session(session_id):
 @role_required(Role.ADMIN)
 @validate_request(AcademicSessionUpdateRequest)
 def update_session(data: AcademicSessionUpdateRequest, session_id):
-    session = update_academic_session(data, session_id)
+    session = update_academic_session(data, session_id, actor_id=g.user.id)
     if session is None:
         abort(404, description="Academic session not found")
 
@@ -83,7 +83,7 @@ def update_session(data: AcademicSessionUpdateRequest, session_id):
 @academic_session_bp.route("/<int:session_id>", methods=["DELETE"])
 @role_required(Role.ADMIN)
 def delete_academic_session_route(session_id):
-    deleted = delete_session(session_id)
+    deleted = delete_session(session_id, actor_id=g.user.id)
     if not deleted:
         abort(404, description="Academic session not found")
 
@@ -95,7 +95,7 @@ def delete_academic_session_route(session_id):
 @academic_session_bp.route("/<int:session_id>/activate", methods=["PATCH"])
 @role_required(Role.ADMIN)
 def activate_session(session_id):
-    session = activate_academic_session(session_id)
+    session = activate_academic_session(session_id, actor_id=g.user.id)
     if session is None:
         abort(404, description="Academic session not found")
 

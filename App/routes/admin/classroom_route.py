@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, abort
+from flask import Blueprint, jsonify, request, abort, g
 from App.decorators import role_required
 from App.utils.helpers import validate_request
 from App.enums.role import Role
@@ -25,7 +25,7 @@ classroom_bp = Blueprint("classroom", __name__, url_prefix="/classrooms")
 @role_required(Role.ADMIN)
 @validate_request(ClassroomCreateRequest)
 def create_classroom_route(data: ClassroomCreateRequest):
-    classroom = create_classroom(data)
+    classroom = create_classroom(data, actor_id=g.user.id)
 
     if classroom is None:
         abort(400, description="Could not create classroom")
@@ -80,7 +80,7 @@ def update_classroom_route(data: ClassroomCreateRequest, classroom_id):
     if classroom is None:
         abort(404, description="Classroom not found")
 
-    updated_classroom = update_classroom_service(classroom_id, data)
+    updated_classroom = update_classroom_service(classroom_id, data, actor_id=g.user.id)
 
     serialized_classroom = ClassroomResponse.model_validate(updated_classroom).model_dump()
     return jsonify(serialized_classroom), 200
@@ -92,7 +92,7 @@ def update_classroom_route(data: ClassroomCreateRequest, classroom_id):
 @role_required(Role.ADMIN)
 @validate_request(BulkAssignStudentsRequest)
 def bulk_assign_students_route(data: BulkAssignStudentsRequest, classroom_id):
-    result = bulk_assign_students_service(classroom_id, data.student_ids)
+    result = bulk_assign_students_service(classroom_id, data.student_ids, actor_id=g.user.id)
 
     if result is None:
         abort(404, description="Classroom not found")
@@ -105,7 +105,7 @@ def bulk_assign_students_route(data: BulkAssignStudentsRequest, classroom_id):
 @classroom_bp.route("/<int:classroom_id>", methods=["DELETE"])
 @role_required(Role.ADMIN)
 def delete_classroom_route(classroom_id):
-    deleted = delete_classroom_service(classroom_id)
+    deleted = delete_classroom_service(classroom_id, actor_id=g.user.id)
 
     if not deleted:
         abort(404, description="Classroom not found")

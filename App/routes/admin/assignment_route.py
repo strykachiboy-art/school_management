@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, abort
+from flask import Blueprint, jsonify, request, abort, g
 from App.decorators import role_required
 from App.enums.role import Role
 from App.requests.subject_request import SubjectResponse
@@ -34,7 +34,7 @@ def assign_subject_to_teachers_route(subject_id):
     teacher_ids = _get_ids_from_request("teacher_ids")
 
     try:
-        assign_subject_to_teachers(subject_id, teacher_ids)
+        assign_subject_to_teachers(subject_id, teacher_ids, actor_id=g.user.id)
     except ValueError as e:
         abort(400, description=str(e))
 
@@ -49,7 +49,7 @@ def remove_subject_from_teachers_route(subject_id):
     teacher_ids = _get_ids_from_request("teacher_ids")
 
     try:
-        remove_subject_from_teachers(subject_id, teacher_ids)
+        remove_subject_from_teachers(subject_id, teacher_ids, actor_id=g.user.id)
     except ValueError as e:
         abort(400, description=str(e))
 
@@ -78,7 +78,7 @@ def assign_subject_to_students_route(subject_id):
     student_ids = _get_ids_from_request("student_ids")
 
     try:
-        assign_subject_to_students(subject_id, student_ids)
+        assign_subject_to_students(subject_id, student_ids, actor_id=g.user.id)
     except ValueError as e:
         abort(400, description=str(e))
 
@@ -93,7 +93,7 @@ def remove_subject_from_students_route(subject_id):
     student_ids = _get_ids_from_request("student_ids")
 
     try:
-        remove_subject_from_students(subject_id, student_ids)
+        remove_subject_from_students(subject_id, student_ids, actor_id=g.user.id)
     except ValueError as e:
         abort(400, description=str(e))
 
@@ -120,7 +120,7 @@ def assign_subject_to_classrooms_route(subject_id):
     classroom_ids = _get_ids_from_request("classroom_ids")
 
     try:
-        assign_subject_to_classrooms(subject_id, classroom_ids)
+        assign_subject_to_classrooms(subject_id, classroom_ids, actor_id=g.user.id)
     except ValueError as e:
         abort(400, description=str(e))
 
@@ -134,7 +134,7 @@ def remove_subject_from_classrooms_route(subject_id):
     classroom_ids = _get_ids_from_request("classroom_ids")
 
     try:
-        remove_subject_from_classrooms(subject_id, classroom_ids)
+        remove_subject_from_classrooms(subject_id, classroom_ids, actor_id=g.user.id)
     except ValueError as e:
         abort(400, description=str(e))
 

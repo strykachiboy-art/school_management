@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request, abort
+from flask import Blueprint, jsonify, request, abort, g
 from App.decorators import role_required
 from App.enums.role import Role
 from App.utils.helpers import validate_request
@@ -22,7 +22,7 @@ subject_bp = Blueprint("subject", __name__, url_prefix="/subjects")
 @role_required(Role.ADMIN)
 @validate_request(SubjectCreateRequest)
 def create_subject_route(data: SubjectCreateRequest):
-    subject = create_subject(data)
+    subject = create_subject(data, actor_id=g.user.id)
 
     if subject is None:
         abort(400, description="Could not create subject")
@@ -78,7 +78,7 @@ def update_subject_route(data: SubjectCreateRequest, subject_id):
     if subject is None:
         abort(404, description="Subject not found")
 
-    updated_subject = update_subject(subject_id, data)
+    updated_subject = update_subject(subject_id, data, actor_id=g.user.id)
 
     serialized_subject = SubjectResponse.model_validate(updated_subject).model_dump()
     return jsonify(serialized_subject), 200
@@ -89,7 +89,7 @@ def update_subject_route(data: SubjectCreateRequest, subject_id):
 @subject_bp.route("/<int:subject_id>", methods=["DELETE"])
 @role_required(Role.ADMIN)
 def delete_subject_route(subject_id):
-    deleted = delete_subject(subject_id)
+    deleted = delete_subject(subject_id, actor_id=g.user.id)
 
     if not deleted:
         abort(404, description="Subject not found")

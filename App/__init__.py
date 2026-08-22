@@ -52,8 +52,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     from App.routes.admin.parent_guardian import parent_guardian_bp
     from App.routes.admin.teacher_permission_route import teacher_permission_bp
     from App.routes.admin.notification.notification_routes import notification_bp
-    
-    
+    from App.routes.admin.audit_log.audit_routes import audit_bp
 
     app.register_blueprint(subject_bp, url_prefix="/subjects")
     app.register_blueprint(classroom_bp, url_prefix="/classrooms")
@@ -75,6 +74,7 @@ def create_app(config: Optional[dict] = None) -> Flask:
     app.register_blueprint(parent_guardian_bp, url_prefix="/parent-guardians")
     app.register_blueprint(teacher_permission_bp, url_prefix="/admin/teachers")
     app.register_blueprint(notification_bp, url_prefix="/notifications")
+    app.register_blueprint(audit_bp, url_prefix="/audit-logs")
     
     register_error_handlers(app)
     

@@ -7,9 +7,11 @@ from App.models import Classroom
 from App.extensions import db
 from App.models.student import Student
 from App.models.user import User
+from App.services.audit_log_service import create_audit_log
+from App.enums.audit import AuditAction
 
 
-def create_students(form):
+def create_students(form, actor_id):
     user = User(
         username=form.username,
         email=form.email,
@@ -35,6 +37,14 @@ def create_students(form):
         db.session.rollback()
         abort(400, description="A user with that username or email already exists.")
 
+    create_audit_log(
+        actor_id=actor_id,
+        action=AuditAction.CREATE,
+        resource_type="Student",
+        resource_id=student.id,
+        description=f"Created student {student.full_name}",
+    )
+
     return student
 
 
@@ -46,10 +56,22 @@ def get_student_by_id(student_id):
     return db.session.get(Student, student_id)
 
 
-def update_student(student_id, form):
+def update_student(student_id, form, actor_id):
     student = db.session.get(Student, student_id)
     if student is None:
         return None
+
+    changes = {}
+    if form.full_name and form.full_name != student.full_name:
+        changes["full_name"] = {"before": student.full_name, "after": form.full_name}
+    if form.email and form.email != student.email:
+        changes["email"] = {"before": student.email, "after": form.email}
+    if form.phone and form.phone != student.phone:
+        changes["phone"] = {"before": student.phone, "after": form.phone}
+    if form.admission_number and form.admission_number != student.admission_number:
+        changes["admission_number"] = {"before": student.admission_number, "after": form.admission_number}
+    if form.classroom_id is not None and form.classroom_id != student.classroom_id:
+        changes["classroom_id"] = {"before": student.classroom_id, "after": form.classroom_id}
 
     student.full_name = form.full_name or student.full_name
     student.email = form.email or student.email
@@ -66,19 +88,39 @@ def update_student(student_id, form):
         db.session.rollback()
         abort(400, description="That email is already in use.")
 
+    if changes:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.UPDATE,
+            resource_type="Student",
+            resource_id=student.id,
+            description=f"Updated student {student.full_name}",
+            changes=changes,
+        )
+
     return student
 
 
-def delete_student(student_id):
+def delete_student(student_id, actor_id):
     student = db.session.get(Student, student_id)
     if student is None:
         return False
 
+    student_name = student.full_name
     user = student.user
     db.session.delete(student)
     if user is not None:
         db.session.delete(user)
     db.session.commit()
+
+    create_audit_log(
+        actor_id=actor_id,
+        action=AuditAction.DELETE,
+        resource_type="Student",
+        resource_id=student_id,
+        description=f"Deleted student {student_name}",
+    )
+
     return True
 
 

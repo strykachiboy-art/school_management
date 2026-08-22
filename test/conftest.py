@@ -523,6 +523,24 @@ def student_in_teacher_classroom(app, teacher, classroom, student):
 # ----------------------------------------------------------------------
 
 @pytest.fixture(scope="function")
+def admin_actor_id(app, admin_headers):
+    """Returns the user ID of an admin for direct service testing requiring actor_id."""
+    with app.app_context():
+        admin = User.query.filter_by(role="admin").first()
+        if admin:
+            return admin.id
+        new_admin = User(
+            username="service_admin",
+            email="s_admin@example.com",
+            password="hashed-placeholder",
+            role="admin",
+        )
+        _db.session.add(new_admin)
+        _db.session.commit()
+        return new_admin.id
+
+
+@pytest.fixture(scope="function")
 def auth_headers(app):
     """Dynamic factory fixture to generate JWT authorization headers for any user or role."""
     from flask_jwt_extended import create_access_token

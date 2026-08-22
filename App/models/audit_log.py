@@ -34,7 +34,7 @@ class AuditLog(db.Model):
 
     resource_id = db.Column(
         db.Integer,
-        nullable=False
+        nullable=True
     )
 
     description = db.Column(

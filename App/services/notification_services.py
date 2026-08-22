@@ -7,6 +7,8 @@ from App.extensions import db
 from App.models.notification import Notification
 from App.enums.notification import NotificationType
 from App.models.user import User
+from App.services.audit_log_service import create_audit_log
+from App.enums.audit import AuditAction
 
 
 class InvalidRecipientError(Exception):
@@ -17,6 +19,7 @@ def create_notification(
     title: str,
     message: str,
     notification_type: NotificationType,
+    actor_id: Optional[int] = None,
 ) -> Notification:
     # Explicitly verify the user exists
     user = db.session.get(User, recipient_id)
@@ -36,6 +39,17 @@ def create_notification(
     except IntegrityError:
         db.session.rollback()
         raise InvalidRecipientError(f"recipient_id {recipient_id} does not exist")
+
+    effective_actor_id = actor_id if actor_id is not None else recipient_id
+    if effective_actor_id:
+        create_audit_log(
+            actor_id=effective_actor_id,
+            action=AuditAction.CREATE,
+            resource_type="Notification",
+            resource_id=notification.id,
+            description=f"Created notification for user ID {recipient_id}: {title}",
+        )
+
     return notification
 
 
@@ -63,7 +77,7 @@ def get_unread_notifications(recipient_id: int, page: int = 1, per_page: int = 2
     )
 
 
-def mark_notification_as_read(notification_id: int, recipient_id: int) -> Optional[Notification]:
+def mark_notification_as_read(notification_id: int, recipient_id: int, actor_id: Optional[int] = None) -> Optional[Notification]:
     notification = get_notification(notification_id, recipient_id)
     if notification is None:
         return None
@@ -71,10 +85,22 @@ def mark_notification_as_read(notification_id: int, recipient_id: int) -> Option
         notification.is_read = True
         notification.read_at = datetime.now(timezone.utc)
         db.session.commit()
+
+        effective_actor_id = actor_id if actor_id is not None else recipient_id
+        if effective_actor_id:
+            create_audit_log(
+                actor_id=effective_actor_id,
+                action=AuditAction.UPDATE,
+                resource_type="Notification",
+                resource_id=notification.id,
+                description=f"Marked notification ID {notification.id} as read",
+                changes={"is_read": {"before": False, "after": True}}
+            )
+
     return notification
 
 
-def mark_all_notifications_as_read(recipient_id: int) -> int:
+def mark_all_notifications_as_read(recipient_id: int, actor_id: Optional[int] = None) -> int:
     now = datetime.now(timezone.utc)
     updated = (
         Notification.query
@@ -82,24 +108,46 @@ def mark_all_notifications_as_read(recipient_id: int) -> int:
         .update({"is_read": True, "read_at": now}, synchronize_session=False)
     )
     db.session.commit()
+
+    effective_actor_id = actor_id if actor_id is not None else recipient_id
+    if updated > 0 and effective_actor_id:
+        create_audit_log(
+            actor_id=effective_actor_id,
+            action=AuditAction.BULK_ACTION,
+            resource_type="Notification",
+            resource_id=None,
+            description=f"Marked all unread notifications ({updated}) as read for user ID {recipient_id}",
+        )
+
     return updated
 
 
-def delete_notification(notification_id: int, recipient_id: int) -> bool:
+def delete_notification(notification_id: int, recipient_id: int, actor_id: Optional[int] = None) -> bool:
     notification = get_notification(notification_id, recipient_id)
     if notification is None:
         return False
     db.session.delete(notification)
     db.session.commit()
+
+    effective_actor_id = actor_id if actor_id is not None else recipient_id
+    if effective_actor_id:
+        create_audit_log(
+            actor_id=effective_actor_id,
+            action=AuditAction.DELETE,
+            resource_type="Notification",
+            resource_id=notification_id,
+            description=f"Deleted notification ID {notification_id}",
+        )
+
     return True
 
 
 # --- reusable entry points other services should call directly ---
 
 def notify_user(
-    recipient_id: int, title: str, message: str, notification_type: NotificationType
+    recipient_id: int, title: str, message: str, notification_type: NotificationType, actor_id: Optional[int] = None
 ) -> Notification:
-    return create_notification(recipient_id, title, message, notification_type)
+    return create_notification(recipient_id, title, message, notification_type, actor_id=actor_id)
 
 
 def notify_users(
@@ -107,6 +155,7 @@ def notify_users(
     title: str,
     message: str,
     notification_type: NotificationType,
+    actor_id: Optional[int] = None,
 ) -> list[Notification]:
     if not recipient_ids:
         return []
@@ -128,4 +177,15 @@ def notify_users(
     except IntegrityError:
         db.session.rollback()
         raise InvalidRecipientError("one or more recipient_ids do not exist")
+
+    if actor_id:
+        create_audit_log(
+            actor_id=actor_id,
+            action=AuditAction.BULK_ACTION,
+            resource_type="Notification",
+            resource_id=None,
+            description=f"Bulk sent notifications to {len(recipient_ids)} recipient(s): {title}",
+            changes={"recipient_ids": list(recipient_ids)}
+        )
+
     return notifications
